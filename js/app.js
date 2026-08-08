@@ -135,3 +135,11 @@ var App = (function () {
 })();
 
 document.addEventListener("DOMContentLoaded", App.init);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("/sw.js").catch(function (e) {
+      console.warn("Service worker no se pudo registrar:", e.message);
+    });
+  });
+}
