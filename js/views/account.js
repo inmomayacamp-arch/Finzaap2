@@ -56,16 +56,29 @@ var AccountView = (function () {
       '</div>' +
 
       '<div class="card">' +
-        '<div class="card-label-sm">' + Icons.get("users", 12) + ' Cuenta compartida</div>' +
-        '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Comparte este código con alguien más para sincronizar:</p>' +
+        '<div class="card-label-sm">' + Icons.get("users", 12) + ' Tu código personal</div>' +
+        '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Compártelo con alguien que ya tenga su propia cuenta para conectarse contigo:</p>' +
         '<div class="share-row">' +
-          '<span class="share-code">' + session.code + '</span>' +
+          '<span class="share-code">' + (session.inviteCode || session.code) + '</span>' +
           '<button class="btn btn-secondary btn-pill" id="btn-copy-code">' + Icons.get("copy", 14) + ' Copiar</button>' +
         '</div>' +
         '<div class="sync-status-text ' + (status === "ok" ? "ok" : "err") + '">' +
           Icons.get(status === "ok" ? "wifi" : "wifiOff", 14) + " " +
           syncStatusLabel(status) +
         '</div>' +
+        (session.inviteCode && session.code !== session.inviteCode
+          ? '<div class="sync-status-text ok" style="margin-top:4px">' + Icons.get("check", 14) + ' Conectado con otra cuenta (código ' + session.code + ')</div>'
+          : '') +
+      '</div>' +
+
+      '<div class="card">' +
+        '<div class="card-label-sm">' + Icons.get("repeat", 12) + ' Unirme a otra cuenta</div>' +
+        '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Escribe el código personal de alguien más para compartir su espacio financiero:</p>' +
+        '<div style="display:flex;gap:10px">' +
+          '<input type="text" id="input-join-code" class="input input-code" placeholder="XXXX-XXXX" maxlength="9" style="flex:1">' +
+          '<button class="btn btn-primary btn-pill" id="btn-join-submit">Unirme</button>' +
+        '</div>' +
+        '<p class="field-error" id="join-code-error" hidden></p>' +
       '</div>' +
 
       '<div class="card">' +
@@ -103,22 +116,72 @@ var AccountView = (function () {
     container.querySelector("#btn-copy-code").addEventListener("click", function (e) {
       var btn = e.currentTarget;
       var restore = btn.innerHTML;
+      var codeToCopy = session.inviteCode || session.code;
       var done = function () {
         btn.innerHTML = Icons.get("check", 14) + ' Copiado';
         setTimeout(function () { btn.innerHTML = restore; }, 1600);
       };
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(session.code).then(done).catch(function () { fallbackCopy(session.code, done); });
+        navigator.clipboard.writeText(codeToCopy).then(done).catch(function () { fallbackCopy(codeToCopy, done); });
       } else {
-        fallbackCopy(session.code, done);
+        fallbackCopy(codeToCopy, done);
       }
     });
 
+    var joinInput = container.querySelector("#input-join-code");
+    joinInput.addEventListener("input", function () {
+      var pos = joinInput.selectionStart;
+      var before = joinInput.value.length;
+      joinInput.value = Utils.formatCode(joinInput.value);
+      var after = joinInput.value.length;
+      joinInput.setSelectionRange(pos + (after - before), pos + (after - before));
+      container.querySelector("#join-code-error").hidden = true;
+    });
+    container.querySelector("#btn-join-submit").addEventListener("click", function () {
+      joinHousehold(container, session, joinInput.value);
+    });
+
     container.querySelector("#btn-logout").addEventListener("click", function () {
-      if (confirm("¿Cerrar sesión en este dispositivo? Tus datos siguen guardados; podrás volver a entrar con el mismo código.")) {
-        Storage.clearSession();
-        App.showSetup();
+      if (confirm("¿Cerrar sesión? Tus datos siguen guardados en la nube; vuelve a entrar con tu correo cuando quieras.")) {
+        Storage.sync.unsubscribe();
+        Auth.signOut().then(function () { App.showSetup(); }).catch(function () { App.showSetup(); });
       }
+    });
+  }
+
+  function joinHousehold(container, session, rawCode) {
+    var code = Utils.normalizeCode(rawCode);
+    var errorEl = container.querySelector("#join-code-error");
+    if (code.length !== 8) {
+      errorEl.textContent = "Ingresa el código completo de 8 caracteres.";
+      errorEl.hidden = false;
+      return;
+    }
+    var formatted = code.slice(0, 4) + "-" + code.slice(4, 8);
+    if (formatted === session.inviteCode) {
+      errorEl.textContent = "Ese es tu propio código.";
+      errorEl.hidden = false;
+      return;
+    }
+    var btn = container.querySelector("#btn-join-submit");
+    var original = btn.textContent;
+    btn.textContent = "Uniendo…";
+    btn.disabled = true;
+
+    Auth.joinByCode(session.userId, formatted).then(function (target) {
+      var newSession = Object.assign({}, session, { code: target.household_code });
+      Storage.setSession(newSession);
+      Storage.sync.unsubscribe();
+      Storage.ensureAccount(newSession.code);
+      return Storage.sync.pullAll(newSession.code).then(function () {
+        Storage.sync.subscribe(newSession.code, App.refresh);
+        App.refresh();
+      });
+    }).catch(function (err) {
+      btn.textContent = original;
+      btn.disabled = false;
+      errorEl.textContent = err.message || String(err);
+      errorEl.hidden = false;
     });
   }
 

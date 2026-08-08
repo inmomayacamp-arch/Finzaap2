@@ -16,37 +16,77 @@
 
 <div id="app">
 
-  <!-- ============ ONBOARDING ============ -->
+  <!-- ============ ONBOARDING (login / registro real) ============ -->
   <section id="view-setup" class="setup-screen">
     <div class="setup-card">
 
-      <!-- Paso 1: nombre -->
-      <div class="setup-step" id="step-name" data-step="name">
+      <!-- Iniciar sesión -->
+      <div class="setup-step" id="step-login" data-step="login">
         <div class="setup-icon">
           <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <h1>¿Cómo te llamas?</h1>
-        <p class="setup-sub">Tu nombre aparecerá en cada registro que hagas</p>
-        <input type="text" id="input-name" class="input" placeholder="Tu nombre" maxlength="24" autocomplete="given-name">
-        <button class="btn btn-primary" id="btn-name-continue" disabled>Continuar</button>
+        <h1>Iniciar sesión</h1>
+        <p class="setup-sub">Entra con tu correo y contraseña</p>
+        <input type="email" id="login-email" class="input" placeholder="Correo electrónico" autocomplete="email">
+        <input type="password" id="login-password" class="input" placeholder="Contraseña" autocomplete="current-password">
+        <button class="btn btn-primary" id="btn-login-submit">Entrar</button>
+        <button class="btn-link" id="btn-go-forgot">¿Olvidaste tu contraseña?</button>
+        <p class="field-error" id="login-error" hidden></p>
+        <div class="join-panel">
+          <p class="setup-sub" style="margin:0 0 10px">¿No tienes cuenta?</p>
+          <button class="btn btn-secondary" id="btn-go-signup">Crear cuenta nueva</button>
+        </div>
       </div>
 
-      <!-- Paso 2: crear o unirse -->
-      <div class="setup-step" id="step-account" data-step="account" hidden>
+      <!-- Crear cuenta -->
+      <div class="setup-step" id="step-signup" data-step="signup" hidden>
         <div class="setup-icon">
           <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <h1>Hola, <span id="greet-name"></span> <span class="wave">👋</span></h1>
-        <p class="setup-sub">¿Crear cuenta nueva o unirte a una existente?</p>
-        <button class="btn btn-primary" id="btn-create-account">Crear cuenta nueva</button>
-        <button class="btn btn-secondary" id="btn-join-account">Unirme a una cuenta</button>
-        <button class="btn-link" id="btn-back-name">← Cambiar nombre</button>
+        <h1>Crear cuenta</h1>
+        <p class="setup-sub">Tu nombre aparecerá en cada registro que hagas</p>
+        <input type="text" id="signup-name" class="input" placeholder="Tu nombre" maxlength="24" autocomplete="given-name">
+        <input type="email" id="signup-email" class="input" placeholder="Correo electrónico" autocomplete="email">
+        <input type="password" id="signup-password" class="input" placeholder="Contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+        <button class="btn btn-primary" id="btn-signup-submit">Crear cuenta</button>
+        <button class="btn-link" id="btn-go-login">← Ya tengo cuenta</button>
+        <p class="field-error" id="signup-error" hidden></p>
+      </div>
 
-        <div class="join-panel" id="join-panel" hidden>
-          <input type="text" id="input-code" class="input input-code" placeholder="XXXX-XXXX" maxlength="9" autocomplete="off">
-          <button class="btn btn-primary" id="btn-join-confirm">Unirme</button>
-          <p class="field-error" id="join-error" hidden>No encontramos esa cuenta en este dispositivo.</p>
+      <!-- Revisa tu correo (confirmación pendiente) -->
+      <div class="setup-step" id="step-check-email" data-step="check-email" hidden>
+        <div class="setup-icon">
+          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
+        <h1>Revisa tu correo</h1>
+        <p class="setup-sub">Te enviamos un enlace de confirmación a <span id="check-email-address" style="font-weight:600;color:var(--text)"></span>. Ábrelo para activar tu cuenta y luego inicia sesión.</p>
+        <button class="btn btn-primary" id="btn-check-email-back">Volver a iniciar sesión</button>
+      </div>
+
+      <!-- Olvidé mi contraseña -->
+      <div class="setup-step" id="step-forgot" data-step="forgot" hidden>
+        <div class="setup-icon">
+          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h1>Recuperar contraseña</h1>
+        <p class="setup-sub">Te enviamos un enlace para crear una nueva contraseña</p>
+        <input type="email" id="forgot-email" class="input" placeholder="Correo electrónico" autocomplete="email">
+        <button class="btn btn-primary" id="btn-forgot-submit">Enviar enlace</button>
+        <button class="btn-link" id="btn-forgot-back">← Volver a iniciar sesión</button>
+        <p class="field-error" id="forgot-error" hidden></p>
+        <p class="field-error" id="forgot-success" style="color:var(--green-500)" hidden>Listo, revisa tu correo.</p>
+      </div>
+
+      <!-- Nueva contraseña (al volver del enlace del correo) -->
+      <div class="setup-step" id="step-reset" data-step="reset" hidden>
+        <div class="setup-icon">
+          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h1>Crea tu nueva contraseña</h1>
+        <p class="setup-sub">Escribe la contraseña que vas a usar de ahora en adelante</p>
+        <input type="password" id="reset-password" class="input" placeholder="Nueva contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+        <button class="btn btn-primary" id="btn-reset-submit">Guardar contraseña</button>
+        <p class="field-error" id="reset-error" hidden></p>
       </div>
 
     </div>
@@ -87,6 +127,7 @@
 <script src="js/utils.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/modals.js"></script>
 <script src="js/views/setup.js"></script>
 <script src="js/views/home.js"></script>

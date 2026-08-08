@@ -254,6 +254,7 @@ var Storage = (function () {
 
     return {
       isConfigured: isConfigured,
+      client: client,
       getStatus: getStatus,
       pushInsert: pushInsert,
       pushDelete: pushDelete,

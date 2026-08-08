@@ -92,22 +92,43 @@ var App = (function () {
 
   function showSetup() {
     Storage.sync.unsubscribe();
+    Storage.clearSession();
     document.getElementById("view-main").hidden = true;
     document.getElementById("view-setup").hidden = false;
-    document.getElementById("step-account").hidden = true;
-    document.getElementById("step-name").hidden = false;
-    document.getElementById("input-name").value = "";
-    document.getElementById("btn-name-continue").disabled = true;
-    document.getElementById("join-panel").hidden = true;
-    document.getElementById("input-code").value = "";
+    ["step-signup", "step-check-email", "step-forgot", "step-reset"].forEach(function (id) {
+      document.getElementById(id).hidden = true;
+    });
+    document.getElementById("step-login").hidden = false;
+    document.getElementById("login-email").value = "";
+    document.getElementById("login-password").value = "";
   }
 
   function init() {
     SetupView.init();
-    var existing = session();
-    if (existing && Storage.accountExists(existing.code)) {
-      boot();
-    }
+
+    if (!Storage.sync.isConfigured()) return; // sin Supabase no hay como iniciar sesion
+
+    var recoveryHandled = false;
+    Auth.onAuthEvent(function (event) {
+      if (event === "PASSWORD_RECOVERY") {
+        recoveryHandled = true;
+        SetupView.showRecoveryStep();
+      }
+    });
+
+    setTimeout(function () {
+      if (recoveryHandled) return; // ya se esta mostrando la pantalla de nueva contraseña
+      Auth.getSessionUser().then(function (user) {
+        if (!user) return;
+        return Auth.loadOrCreateProfile(user.id).then(function (profile) {
+          Storage.setSession({
+            userId: profile.id, name: profile.name, code: profile.householdCode,
+            inviteCode: profile.inviteCode, color: Utils.colorForAuthor(profile.name)
+          });
+          boot();
+        });
+      }).catch(function (e) { console.warn("Auth init:", e.message); });
+    }, 60); // le da chance al listener de recovery a disparar primero si aplica
   }
 
   return { session: session, navigate: navigate, refresh: refresh, boot: boot, showSetup: showSetup, init: init };

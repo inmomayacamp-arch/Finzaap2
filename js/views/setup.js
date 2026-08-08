@@ -1,73 +1,26 @@
 /* =========================================================
-   views/setup.js — flujo de onboarding (3 pasos)
+   views/setup.js — login / registro / recuperación (Supabase Auth)
    ========================================================= */
 
 var SetupView = (function () {
 
-  var pendingName = "";
+  function $(id) { return document.getElementById(id); }
 
-  function init() {
-    var nameInput = document.getElementById("input-name");
-    var continueBtn = document.getElementById("btn-name-continue");
-    var codeInput = document.getElementById("input-code");
-
-    nameInput.addEventListener("input", function () {
-      continueBtn.disabled = nameInput.value.trim().length === 0;
+  function showStep(id) {
+    ["step-login", "step-signup", "step-check-email", "step-forgot", "step-reset"].forEach(function (s) {
+      $(s).hidden = s !== id;
     });
-    nameInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !continueBtn.disabled) goToAccountStep();
-    });
-    continueBtn.addEventListener("click", goToAccountStep);
-
-    document.getElementById("btn-back-name").addEventListener("click", function () {
-      document.getElementById("step-account").hidden = true;
-      document.getElementById("step-name").hidden = false;
-      nameInput.focus();
-    });
-
-    document.getElementById("btn-create-account").addEventListener("click", createAccount);
-
-    document.getElementById("btn-join-account").addEventListener("click", function () {
-      var panel = document.getElementById("join-panel");
-      panel.hidden = !panel.hidden;
-      if (!panel.hidden) codeInput.focus();
-    });
-
-    codeInput.addEventListener("input", function () {
-      var pos = codeInput.selectionStart;
-      var before = codeInput.value.length;
-      codeInput.value = Utils.formatCode(codeInput.value);
-      var after = codeInput.value.length;
-      codeInput.setSelectionRange(pos + (after - before), pos + (after - before));
-      document.getElementById("join-error").hidden = true;
-    });
-    codeInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") joinAccount();
-    });
-    document.getElementById("btn-join-confirm").addEventListener("click", joinAccount);
   }
 
-  function goToAccountStep() {
-    var nameInput = document.getElementById("input-name");
-    pendingName = nameInput.value.trim();
-    if (!pendingName) return;
-    document.getElementById("greet-name").textContent = pendingName;
-    document.getElementById("step-name").hidden = true;
-    document.getElementById("step-account").hidden = false;
+  function showError(id, err) {
+    var el = $(id);
+    el.textContent = (err && err.message) || String(err);
+    el.hidden = false;
   }
-
-  function startSession(code) {
-    var session = {
-      name: pendingName,
-      code: code,
-      color: Utils.colorForAuthor(pendingName)
-    };
-    Storage.setSession(session);
-    App.boot();
-  }
+  function hideError(id) { $(id).hidden = true; }
 
   function setLoading(btn, loadingText) {
-    btn.dataset.originalText = btn.textContent;
+    if (btn.dataset.originalText === undefined) btn.dataset.originalText = btn.textContent;
     btn.textContent = loadingText;
     btn.disabled = true;
   }
@@ -76,56 +29,100 @@ var SetupView = (function () {
     btn.disabled = false;
   }
 
-  function createAccount() {
-    var code = Utils.generateAccountCode();
-    Storage.ensureAccount(code);
-    var btn = document.getElementById("btn-create-account");
+  function sessionFromProfile(profile) {
+    return {
+      userId: profile.id,
+      name: profile.name,
+      code: profile.householdCode,
+      inviteCode: profile.inviteCode,
+      color: Utils.colorForAuthor(profile.name)
+    };
+  }
 
-    if (Storage.sync.isConfigured()) {
+  function init() {
+    // ---- login ----
+    $("btn-login-submit").addEventListener("click", function () {
+      hideError("login-error");
+      var email = $("login-email").value.trim();
+      var password = $("login-password").value;
+      if (!email || !password) { showError("login-error", "Escribe tu correo y tu contraseña."); return; }
+      var btn = $("btn-login-submit");
+      setLoading(btn, "Entrando…");
+      Auth.signIn(email, password)
+        .then(function (profile) {
+          Storage.setSession(sessionFromProfile(profile));
+          App.boot();
+        })
+        .catch(function (err) { clearLoading(btn); showError("login-error", err); });
+    });
+    $("login-password").addEventListener("keydown", function (e) { if (e.key === "Enter") $("btn-login-submit").click(); });
+
+    $("btn-go-signup").addEventListener("click", function () { showStep("step-signup"); });
+    $("btn-go-login").addEventListener("click", function () { showStep("step-login"); });
+    $("btn-go-forgot").addEventListener("click", function () { showStep("step-forgot"); });
+
+    // ---- crear cuenta ----
+    $("btn-signup-submit").addEventListener("click", function () {
+      hideError("signup-error");
+      var name = $("signup-name").value.trim();
+      var email = $("signup-email").value.trim();
+      var password = $("signup-password").value;
+      if (!name) { showError("signup-error", "Escribe tu nombre."); return; }
+      if (!email) { showError("signup-error", "Escribe tu correo."); return; }
+      if (password.length < 6) { showError("signup-error", "La contraseña debe tener al menos 6 caracteres."); return; }
+      var btn = $("btn-signup-submit");
       setLoading(btn, "Creando…");
-      Storage.sync.ensureAccountRemote(code)
-        .then(function () { startSession(code); })
-        .catch(function () { startSession(code); });
-    } else {
-      startSession(code);
-    }
+      Auth.signUp(name, email, password)
+        .then(function (result) {
+          clearLoading(btn);
+          if (result.needsConfirmation) {
+            $("check-email-address").textContent = email;
+            showStep("step-check-email");
+          } else {
+            Storage.setSession(sessionFromProfile(result.profile));
+            App.boot();
+          }
+        })
+        .catch(function (err) { clearLoading(btn); showError("signup-error", err); });
+    });
+
+    $("btn-check-email-back").addEventListener("click", function () { showStep("step-login"); });
+
+    // ---- olvidé mi contraseña ----
+    $("btn-forgot-back").addEventListener("click", function () { showStep("step-login"); });
+    $("btn-forgot-submit").addEventListener("click", function () {
+      hideError("forgot-error");
+      $("forgot-success").hidden = true;
+      var email = $("forgot-email").value.trim();
+      if (!email) { showError("forgot-error", "Escribe tu correo."); return; }
+      var btn = $("btn-forgot-submit");
+      setLoading(btn, "Enviando…");
+      Auth.sendPasswordReset(email)
+        .then(function () { clearLoading(btn); $("forgot-success").hidden = false; })
+        .catch(function (err) { clearLoading(btn); showError("forgot-error", err); });
+    });
+
+    // ---- nueva contraseña (desde el enlace del correo) ----
+    $("btn-reset-submit").addEventListener("click", function () {
+      hideError("reset-error");
+      var pw = $("reset-password").value;
+      if (pw.length < 6) { showError("reset-error", "La contraseña debe tener al menos 6 caracteres."); return; }
+      var btn = $("btn-reset-submit");
+      setLoading(btn, "Guardando…");
+      Auth.updatePassword(pw)
+        .then(function () { return Auth.getSessionUser(); })
+        .then(function (user) { return Auth.loadOrCreateProfile(user.id); })
+        .then(function (profile) {
+          Storage.setSession(sessionFromProfile(profile));
+          App.boot();
+        })
+        .catch(function (err) { clearLoading(btn); showError("reset-error", err); });
+    });
   }
 
-  function joinAccount() {
-    var codeInput = document.getElementById("input-code");
-    var code = Utils.normalizeCode(codeInput.value);
-    var errorEl = document.getElementById("join-error");
-
-    if (code.length !== 8) {
-      errorEl.textContent = "Ingresa el código completo de 8 caracteres.";
-      errorEl.hidden = false;
-      return;
-    }
-    var formatted = code.slice(0, 4) + "-" + code.slice(4, 8);
-    var btn = document.getElementById("btn-join-confirm");
-
-    if (Storage.sync.isConfigured()) {
-      setLoading(btn, "Buscando…");
-      Storage.sync.accountExistsRemote(formatted).then(function (existsRemote) {
-        clearLoading(btn);
-        if (existsRemote === false) {
-          errorEl.textContent = "No encontramos esa cuenta. Verifica el código.";
-          errorEl.hidden = false;
-          return;
-        }
-        Storage.ensureAccount(formatted);
-        startSession(formatted);
-      });
-      return;
-    }
-
-    if (!Storage.accountExists(formatted)) {
-      errorEl.textContent = "No encontramos esa cuenta en este dispositivo.";
-      errorEl.hidden = false;
-      return;
-    }
-    startSession(formatted);
+  function showRecoveryStep() {
+    showStep("step-reset");
   }
 
-  return { init: init };
+  return { init: init, showRecoveryStep: showRecoveryStep };
 })();
