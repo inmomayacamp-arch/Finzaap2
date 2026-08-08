@@ -237,13 +237,15 @@ var Storage = (function () {
       }, 350);
 
       var builder = c.channel("account-" + code);
-      ENTITIES.concat(["accounts"]).forEach(function (entity) {
+      ENTITIES.forEach(function (entity) {
         builder = builder.on("postgres_changes",
           { event: "*", schema: "public", table: tableFor(entity), filter: "account_code=eq." + code },
           onChangeCb
         );
       });
-      channel = builder.subscribe();
+      channel = builder.subscribe(function (status, err) {
+        if (err) console.warn("Sync realtime:", err.message);
+      });
     }
 
     function unsubscribe() {
