@@ -158,8 +158,10 @@ var HomeView = (function () {
       '<div class="tx-row" data-tx-id="' + t.id + '">' +
         '<div class="tx-icon">' + Icons.categoryEmoji(t.category) + '</div>' +
         '<div class="tx-body">' +
-          '<div class="tx-title">' + Utils.escapeHtml(t.description || "Sin descripción") +
+          '<div class="tx-title">' +
+            '<span class="tx-title-text">' + Utils.escapeHtml(t.description || "Sin descripción") + '</span>' +
             (t.recurrent ? '<span class="tag tag-recurrent">Recurrente</span>' : "") +
+            (t.edited ? '<span class="tag tag-edited">Modificado</span>' : "") +
           '</div>' +
           '<div class="tx-meta">' + Utils.escapeHtml(t.category || "General") + ' · ' + t.date +
             (t.author ? ' · <span style="color:' + t.authorColor + ';font-weight:700">' + Utils.escapeHtml(t.author) + '</span>' : "") +
@@ -219,23 +221,33 @@ var HomeView = (function () {
         App.refresh();
       });
     });
+
+    container.querySelectorAll(".tx-row[data-tx-id]").forEach(function (row) {
+      row.addEventListener("click", function (e) {
+        if (e.target.closest("[data-remove-tx]")) return;
+        var tx = Storage.transactions.list(code()).find(function (t) { return t.id === row.getAttribute("data-tx-id"); });
+        if (tx) openTransactionModal(tx.type, tx);
+      });
+    });
   }
 
   // ---------------- Modal: agregar ingreso / egreso ----------------
 
-  function openTransactionModal(type) {
+  function openTransactionModal(type, existing) {
     var isIncome = type === "ingreso";
+    var isEdit = !!existing;
     var theme = isIncome ? "income" : "expense";
-    var templates = Storage.recurringTransactions.list(code()).filter(function (r) { return r.type === type; });
+    var templates = isEdit ? [] : Storage.recurringTransactions.list(code()).filter(function (r) { return r.type === type; });
+    var initialMethod = isEdit ? existing.method : "efectivo";
 
     var html =
       Modals.headerHTML({
         icon: isIncome ? "arrowUpRight" : "arrowDownRight",
         theme: theme,
-        title: isIncome ? "Nuevo Ingreso" : "Nuevo Egreso",
-        sub: "Registra el movimiento",
+        title: (isEdit ? "Editar " : "Nuevo ") + (isIncome ? "Ingreso" : "Egreso"),
+        sub: isEdit ? "Modifica el movimiento" : "Registra el movimiento",
         headerRight:
-          '<button class="recurring-toggle-btn theme-' + (isIncome ? "green" : "red") + '" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' +
+          (isEdit ? "" : '<button class="recurring-toggle-btn theme-' + (isIncome ? "green" : "red") + '" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>') +
           '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>'
       }) +
       '<div id="recurring-picker-slot"></div>' +
@@ -243,41 +255,44 @@ var HomeView = (function () {
         '<label class="field-label">Monto (MXN)</label>' +
         '<div class="amount-field ' + theme + '">' +
           '<span class="curr-sign">$</span>' +
-          '<input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01">' +
+          '<input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01" value="' + (isEdit ? existing.amount : "") + '">' +
         '</div>' +
       '</div>' +
       '<div class="field-textline">' +
-        '<input type="text" id="f-description" class="plain-input-underline" placeholder="Concepto">' +
+        '<input type="text" id="f-description" class="plain-input-underline" placeholder="Concepto" value="' + (isEdit ? Utils.escapeHtml(existing.description || "") : "") + '">' +
       '</div>' +
       '<div class="field-textline">' +
-        '<input type="text" id="f-category" class="plain-input-underline" placeholder="Categoría (ej. Trabajo, Alimentación)">' +
+        '<input type="text" id="f-category" class="plain-input-underline" placeholder="Categoría (ej. Trabajo, Alimentación)" value="' + (isEdit ? Utils.escapeHtml(existing.category || "") : "") + '">' +
       '</div>' +
       '<div class="field-textline">' +
-        '<input type="text" id="f-note" class="plain-input-underline" placeholder="Nota o comentario (opcional)">' +
+        '<input type="text" id="f-note" class="plain-input-underline" placeholder="Nota o comentario (opcional)" value="' + (isEdit ? Utils.escapeHtml(existing.note || "") : "") + '">' +
       '</div>' +
       '<div class="field-group">' +
         '<label class="field-label">Fecha</label>' +
-        '<input type="date" id="f-date" class="input" value="' + Utils.todayISO() + '">' +
+        '<input type="date" id="f-date" class="input" value="' + (isEdit ? existing.date : Utils.todayISO()) + '">' +
       '</div>' +
       '<div class="field-group">' +
         '<label class="field-label">Método</label>' +
         '<div class="method-row">' +
-          '<button type="button" class="method-btn" data-method="tarjeta">' + Icons.get("card", 15) + ' Tarjeta</button>' +
-          '<button type="button" class="method-btn selected ' + theme + '" data-method="efectivo">' + Icons.get("cash", 15) + ' Efectivo</button>' +
+          '<button type="button" class="method-btn' + (initialMethod === "tarjeta" ? " selected " + theme : "") + '" data-method="tarjeta">' + Icons.get("card", 15) + ' Tarjeta</button>' +
+          '<button type="button" class="method-btn' + (initialMethod === "efectivo" ? " selected " + theme : "") + '" data-method="efectivo">' + Icons.get("cash", 15) + ' Efectivo</button>' +
         '</div>' +
       '</div>' +
-      '<div class="field-group">' +
-        '<label class="checkbox-row">' +
-          '<input type="checkbox" id="f-save-recurrent">' +
-          '<span><span class="cb-title">Guardar como recurrente</span><br><span class="cb-sub">Lo podrás reutilizar rápidamente</span></span>' +
-        '</label>' +
-      '</div>' +
-      '<button class="btn ' + (isIncome ? "btn-success" : "btn-danger-solid") + ' modal-footer-btn" id="f-submit">Guardar ' + (isIncome ? "Ingreso" : "Egreso") + '</button>';
+      (isEdit ? "" :
+        '<div class="field-group">' +
+          '<label class="checkbox-row">' +
+            '<input type="checkbox" id="f-save-recurrent">' +
+            '<span><span class="cb-title">Guardar como recurrente</span><br><span class="cb-sub">Lo podrás reutilizar rápidamente</span></span>' +
+          '</label>' +
+        '</div>') +
+      '<button class="btn ' + (isIncome ? "btn-success" : "btn-danger-solid") + ' modal-footer-btn" id="f-submit">' +
+        (isEdit ? "Guardar cambios" : "Guardar " + (isIncome ? "Ingreso" : "Egreso")) +
+      '</button>';
 
     Modals.open({
       html: html,
       onMount: function (sheet) {
-        var method = "efectivo";
+        var method = initialMethod;
         sheet.querySelectorAll("[data-method]").forEach(function (btn) {
           btn.addEventListener("click", function () {
             method = btn.getAttribute("data-method");
@@ -324,9 +339,19 @@ var HomeView = (function () {
           var category = sheet.querySelector("#f-category").value.trim() || "General";
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
-          var saveRecurrent = sheet.querySelector("#f-save-recurrent").checked;
           var session = App.session();
 
+          if (isEdit) {
+            Storage.transactions.update(code(), existing.id, {
+              amount: amount, description: description, category: category,
+              note: note, date: date, method: method, edited: true
+            });
+            Modals.close();
+            App.refresh();
+            return;
+          }
+
+          var saveRecurrent = sheet.querySelector("#f-save-recurrent").checked;
           var tx = {
             id: Utils.uid(),
             type: type,

@@ -82,8 +82,10 @@ var PayablesView = (function () {
       '<div class="tx-row" data-item-id="' + item.id + '">' +
         '<div class="tx-icon theme-indigo">' + Icons.get("up", 18) + '</div>' +
         '<div class="tx-body">' +
-          '<div class="tx-title">' + Utils.escapeHtml(item.description || "Sin descripción") +
-            (item.reminder ? ' <span title="Tiene recordatorio">' + Icons.get("bell", 12) + '</span>' : "") +
+          '<div class="tx-title">' +
+            '<span class="tx-title-text">' + Utils.escapeHtml(item.description || "Sin descripción") + '</span>' +
+            (item.reminder ? '<span title="Tiene recordatorio">' + Icons.get("bell", 12) + '</span>' : "") +
+            (item.edited ? '<span class="tag tag-edited">Modificado</span>' : "") +
           '</div>' +
           '<div class="tx-meta"><span style="' + (urgent ? "color:var(--red-500);font-weight:700" : "") + '">' + item.date + ' · ' + Utils.humanDueLabel(item.date) + '</span></div>' +
         '</div>' +
@@ -125,15 +127,24 @@ var PayablesView = (function () {
     container.querySelector("#btn-add-template").addEventListener("click", function () { openTemplateModal(); });
 
     container.querySelectorAll("[data-mark-paid]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
         Storage.payables.remove(code(), btn.getAttribute("data-mark-paid"));
         App.refresh();
       });
     });
     container.querySelectorAll("[data-remove]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
         Storage.payables.remove(code(), btn.getAttribute("data-remove"));
         App.refresh();
+      });
+    });
+    container.querySelectorAll(".tx-row[data-item-id]").forEach(function (row) {
+      row.addEventListener("click", function (e) {
+        if (e.target.closest("[data-mark-paid]") || e.target.closest("[data-remove]")) return;
+        var item = Storage.payables.list(code()).find(function (p) { return p.id === row.getAttribute("data-item-id"); });
+        if (item) openAddModal(item);
       });
     });
     container.querySelectorAll("[data-use-template]").forEach(function (btn) {
@@ -157,33 +168,37 @@ var PayablesView = (function () {
     });
   }
 
-  function openAddModal() {
-    var templates = Storage.recurringPayables.list(code());
+  function openAddModal(existing) {
+    var isEdit = !!existing;
+    var templates = isEdit ? [] : Storage.recurringPayables.list(code());
     var html =
-      Modals.headerHTML({ icon: "up", theme: "pay", title: "Pago por hacer", sub: "Registra un compromiso",
-        headerRight: '<button class="recurring-toggle-btn theme-indigo" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' +
+      Modals.headerHTML({ icon: "up", theme: "pay", title: isEdit ? "Editar pago" : "Pago por hacer", sub: isEdit ? "Modifica el movimiento" : "Registra un compromiso",
+        headerRight: (isEdit ? "" : '<button class="recurring-toggle-btn theme-indigo" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>') +
           '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>' }) +
       '<div id="recurring-picker-slot"></div>' +
       '<div class="field-group">' +
         '<label class="field-label">Monto (MXN)</label>' +
-        '<div class="amount-field pay"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01"></div>' +
+        '<div class="amount-field pay"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01" value="' + (isEdit ? existing.amount : "") + '"></div>' +
       '</div>' +
-      '<div class="field-textline"><input type="text" id="f-description" class="plain-input-underline" placeholder="Concepto"></div>' +
-      '<div class="field-textline"><input type="text" id="f-note" class="plain-input-underline" placeholder="Nota o comentario (opcional)"></div>' +
-      '<div class="field-group"><label class="field-label">Fecha de vencimiento</label><input type="date" id="f-date" class="input" value="' + Utils.todayISO() + '"></div>' +
-      '<div class="field-group"><label class="field-label">' + Icons.get("bell", 12) + ' Recordatorio (opcional)</label><input type="date" id="f-reminder" class="input"></div>' +
-      '<div class="field-group"><label class="checkbox-row"><input type="checkbox" id="f-save-recurrent">' +
-        '<span><span class="cb-title">Guardar como recurrente</span><br><span class="cb-sub">Lo podrás reutilizar la próxima vez</span></span></label></div>' +
-      '<button class="btn btn-indigo modal-footer-btn" id="f-submit">Guardar</button>';
+      '<div class="field-textline"><input type="text" id="f-description" class="plain-input-underline" placeholder="Concepto" value="' + (isEdit ? Utils.escapeHtml(existing.description || "") : "") + '"></div>' +
+      '<div class="field-textline"><input type="text" id="f-note" class="plain-input-underline" placeholder="Nota o comentario (opcional)" value="' + (isEdit ? Utils.escapeHtml(existing.note || "") : "") + '"></div>' +
+      '<div class="field-group"><label class="field-label">Fecha de vencimiento</label><input type="date" id="f-date" class="input" value="' + (isEdit ? existing.date : Utils.todayISO()) + '"></div>' +
+      '<div class="field-group"><label class="field-label">' + Icons.get("bell", 12) + ' Recordatorio (opcional)</label><input type="date" id="f-reminder" class="input" value="' + (isEdit ? (existing.reminder || "") : "") + '"></div>' +
+      (isEdit ? "" :
+        '<div class="field-group"><label class="checkbox-row"><input type="checkbox" id="f-save-recurrent">' +
+          '<span><span class="cb-title">Guardar como recurrente</span><br><span class="cb-sub">Lo podrás reutilizar la próxima vez</span></span></label></div>') +
+      '<button class="btn btn-indigo modal-footer-btn" id="f-submit">' + (isEdit ? "Guardar cambios" : "Guardar") + '</button>';
 
     Modals.open({
       html: html,
       onMount: function (sheet) {
-        bindRecurringPicker(sheet, templates, function (tpl) {
-          sheet.querySelector("#f-amount").value = tpl.amount;
-          sheet.querySelector("#f-description").value = tpl.description;
-          sheet.querySelector("#f-note").value = tpl.note || "";
-        });
+        if (!isEdit) {
+          bindRecurringPicker(sheet, templates, function (tpl) {
+            sheet.querySelector("#f-amount").value = tpl.amount;
+            sheet.querySelector("#f-description").value = tpl.description;
+            sheet.querySelector("#f-note").value = tpl.note || "";
+          });
+        }
 
         sheet.querySelector("#f-submit").addEventListener("click", function () {
           var amount = parseFloat(sheet.querySelector("#f-amount").value);
@@ -192,6 +207,14 @@ var PayablesView = (function () {
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
           var reminder = sheet.querySelector("#f-reminder").value;
+
+          if (isEdit) {
+            Storage.payables.update(code(), existing.id, { amount: amount, description: description, note: note, date: date, reminder: reminder, edited: true });
+            Modals.close();
+            App.refresh();
+            return;
+          }
+
           var saveRecurrent = sheet.querySelector("#f-save-recurrent").checked;
           var session = App.session();
 

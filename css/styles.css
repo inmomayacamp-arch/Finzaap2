@@ -549,9 +549,13 @@ input{ font-family:inherit; }
   display:flex;
   align-items:center;
   gap:6px;
-  white-space:nowrap;
+  min-width:0;
+}
+.tx-title-text{
   overflow:hidden;
   text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
 }
 .tx-meta{
   font-size:12px;
@@ -588,7 +592,11 @@ input{ font-family:inherit; }
   flex-shrink:0;
 }
 .tag-recurrent{ background:var(--purple-50); color:var(--purple-500); }
+.tag-edited{ background:var(--surface-alt); color:var(--text-tertiary); }
 .tag-author{ color:#fff; }
+
+.tx-row{ cursor:pointer; }
+.tx-row:hover{ background:var(--hover-tint); border-radius:12px; }
 
 .empty-state{
   text-align:center;
