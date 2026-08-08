@@ -235,7 +235,7 @@ var HomeView = (function () {
         title: isIncome ? "Nuevo Ingreso" : "Nuevo Egreso",
         sub: "Registra el movimiento",
         headerRight:
-          (templates.length ? '<button class="recurring-toggle-btn" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' : '') +
+          '<button class="recurring-toggle-btn theme-' + (isIncome ? "green" : "red") + '" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' +
           '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>'
       }) +
       '<div id="recurring-picker-slot"></div>' +

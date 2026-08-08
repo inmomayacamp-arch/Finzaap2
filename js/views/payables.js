@@ -161,7 +161,7 @@ var PayablesView = (function () {
     var templates = Storage.recurringPayables.list(code());
     var html =
       Modals.headerHTML({ icon: "up", theme: "pay", title: "Pago por hacer", sub: "Registra un compromiso",
-        headerRight: (templates.length ? '<button class="recurring-toggle-btn" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' : '') +
+        headerRight: '<button class="recurring-toggle-btn theme-indigo" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' +
           '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>' }) +
       '<div id="recurring-picker-slot"></div>' +
       '<div class="field-group">' +

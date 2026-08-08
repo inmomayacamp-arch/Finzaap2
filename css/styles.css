@@ -1175,6 +1175,22 @@ input{ font-family:inherit; }
 .recurring-toggle-btn:hover{ background:#e4defc; }
 .recurring-toggle-btn.active{ background:var(--purple-500); color:#fff; }
 
+.recurring-toggle-btn.theme-green{ background:var(--green-50); color:var(--green-500); }
+.recurring-toggle-btn.theme-green:hover{ background:#d3f5e6; }
+.recurring-toggle-btn.theme-green.active{ background:var(--green-500); color:#fff; }
+
+.recurring-toggle-btn.theme-red{ background:var(--red-50); color:var(--red-500); }
+.recurring-toggle-btn.theme-red:hover{ background:#fddede; }
+.recurring-toggle-btn.theme-red.active{ background:var(--red-500); color:#fff; }
+
+.recurring-toggle-btn.theme-amber{ background:var(--amber-50); color:var(--amber-500); }
+.recurring-toggle-btn.theme-amber:hover{ background:#ffecc4; }
+.recurring-toggle-btn.theme-amber.active{ background:var(--amber-500); color:#fff; }
+
+.recurring-toggle-btn.theme-indigo{ background:var(--purple-50); color:var(--indigo-500); }
+.recurring-toggle-btn.theme-indigo:hover{ background:#e4defc; }
+.recurring-toggle-btn.theme-indigo.active{ background:var(--indigo-500); color:#fff; }
+
 .recurring-picker{
   background:var(--surface-alt);
   border-radius:var(--radius-md);

@@ -161,7 +161,7 @@ var ReceivablesView = (function () {
     var templates = Storage.recurringReceivables.list(code());
     var html =
       Modals.headerHTML({ icon: "down", theme: "collect", title: "Pago por cobrar", sub: "Registra lo que te deben",
-        headerRight: (templates.length ? '<button class="recurring-toggle-btn" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' : '') +
+        headerRight: '<button class="recurring-toggle-btn theme-amber" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>' +
           '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>' }) +
       '<div id="recurring-picker-slot"></div>' +
       '<div class="field-group">' +
