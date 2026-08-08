@@ -23,7 +23,7 @@ var SavingsView = (function () {
           '<h1 class="page-title">Ahorro</h1>' +
         '</div>' +
         '<div style="display:flex;gap:8px">' +
-          '<button class="btn btn-indigo btn-pill" id="btn-add-category">+ Categoría</button>' +
+          '<button class="btn btn-indigo btn-pill" id="btn-add-category">+ Agregar Meta</button>' +
           '<button class="btn btn-amber btn-pill" id="btn-add-deposit">+ Agregar</button>' +
         '</div>' +
       '</div>' +
@@ -110,7 +110,7 @@ var SavingsView = (function () {
 
   function openCategoryModal() {
     var html =
-      Modals.headerHTML({ icon: "piggy", theme: "savings", title: "Nueva meta de ahorro", sub: "Crea una categoría" }) +
+      Modals.headerHTML({ icon: "piggy", theme: "savings", title: "Nueva meta de ahorro", sub: "Solo crea la meta, sin dinero todavía" }) +
       '<div class="field-group"><label class="field-label">Ícono</label>' +
         '<div class="emoji-grid">' + EMOJI_OPTIONS.map(function (e, i) {
           return '<div class="emoji-opt' + (i === 0 ? " selected" : "") + '" data-emoji="' + e + '">' + e + '</div>';
@@ -120,7 +120,7 @@ var SavingsView = (function () {
       '<div class="field-group"><label class="field-label">Meta en pesos (opcional)</label>' +
         '<div class="amount-field collect"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-goal" placeholder="0" min="0" step="0.01"></div>' +
       '</div>' +
-      '<button class="btn btn-amber modal-footer-btn" id="f-submit">Crear categoría</button>';
+      '<button class="btn btn-amber modal-footer-btn" id="f-submit">Crear meta</button>';
 
     Modals.open({
       html: html,
@@ -147,16 +147,36 @@ var SavingsView = (function () {
 
   function openDepositModal(preselectId) {
     var categories = Storage.savingsCategories.list(code());
-    if (!categories.length) { openCategoryModal(); return; }
+    var hasCategories = categories.length > 0;
 
     var html =
-      Modals.headerHTML({ icon: "piggy", theme: "savings", title: "Nuevo depósito", sub: "Agrega a tu ahorro" }) +
-      '<div class="field-group"><label class="field-label">Categoría</label>' +
-        '<select id="f-category" class="input">' +
-          categories.map(function (c) { return '<option value="' + c.id + '"' + (c.id === preselectId ? " selected" : "") + '>' + c.icon + " " + Utils.escapeHtml(c.name) + '</option>'; }).join("") +
-        '</select>' +
+      Modals.headerHTML({ icon: "piggy", theme: "savings", title: "Agregar dinero", sub: "Crea una meta nueva o abona a una que ya tengas" }) +
+      (hasCategories ?
+        '<div class="segmented" id="mode-toggle" style="margin-bottom:16px">' +
+          '<button type="button" class="active" data-mode="existing">Meta existente</button>' +
+          '<button type="button" data-mode="new">Nueva meta</button>' +
+        '</div>'
+        : '') +
+      '<div id="existing-slot"' + (hasCategories ? '' : ' hidden') + '>' +
+        '<div class="field-group"><label class="field-label">Categoría</label>' +
+          '<select id="f-category" class="input">' +
+            categories.map(function (c) { return '<option value="' + c.id + '"' + (c.id === preselectId ? " selected" : "") + '>' + c.icon + " " + Utils.escapeHtml(c.name) + '</option>'; }).join("") +
+          '</select>' +
+        '</div>' +
       '</div>' +
-      '<div class="field-group"><label class="field-label">Monto (MXN)</label>' +
+      '<div id="new-slot"' + (hasCategories ? ' hidden' : '') + '>' +
+        '<div class="field-group"><label class="field-label">Ícono</label>' +
+          '<div class="emoji-grid">' + EMOJI_OPTIONS.map(function (e, i) {
+            return '<div class="emoji-opt' + (i === 0 ? " selected" : "") + '" data-emoji="' + e + '">' + e + '</div>';
+          }).join("") + '</div>' +
+        '</div>' +
+        '<div class="field-textline"><input type="text" id="f-new-name" class="plain-input-underline" placeholder="Nombre de la meta (ej. Viaje)"></div>' +
+        '<div class="field-group"><label class="field-label">Meta en pesos (opcional)</label>' +
+          '<div class="amount-field collect"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-new-goal" placeholder="0" min="0" step="0.01"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="field-group">' +
+        '<label class="field-label">Monto a depositar (MXN)</label>' +
         '<div class="amount-field collect"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01"></div>' +
       '</div>' +
       '<div class="field-textline"><input type="text" id="f-note" class="plain-input-underline" placeholder="Nota (opcional)"></div>' +
@@ -168,12 +188,35 @@ var SavingsView = (function () {
           '<button type="button" class="method-btn selected neutral" data-method="efectivo">' + Icons.get("cash", 15) + ' Efectivo</button>' +
         '</div>' +
       '</div>' +
-      '<button class="btn btn-amber modal-footer-btn" id="f-submit">Guardar depósito</button>';
+      '<button class="btn btn-amber modal-footer-btn" id="f-submit">Guardar</button>';
 
     Modals.open({
       html: html,
       onMount: function (sheet) {
         var method = "efectivo";
+        var mode = hasCategories ? "existing" : "new";
+        var selectedEmoji = EMOJI_OPTIONS[0];
+
+        if (hasCategories) {
+          sheet.querySelectorAll("[data-mode]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              mode = btn.getAttribute("data-mode");
+              sheet.querySelectorAll("[data-mode]").forEach(function (b) { b.classList.remove("active"); });
+              btn.classList.add("active");
+              sheet.querySelector("#existing-slot").hidden = mode !== "existing";
+              sheet.querySelector("#new-slot").hidden = mode !== "new";
+            });
+          });
+        }
+
+        sheet.querySelectorAll("[data-emoji]").forEach(function (opt) {
+          opt.addEventListener("click", function () {
+            selectedEmoji = opt.getAttribute("data-emoji");
+            sheet.querySelectorAll("[data-emoji]").forEach(function (o) { o.classList.remove("selected"); });
+            opt.classList.add("selected");
+          });
+        });
+
         sheet.querySelectorAll("[data-method]").forEach(function (btn) {
           btn.addEventListener("click", function () {
             method = btn.getAttribute("data-method");
@@ -181,13 +224,25 @@ var SavingsView = (function () {
             btn.classList.add("selected", "neutral");
           });
         });
+
         sheet.querySelector("#f-submit").addEventListener("click", function () {
           var amount = parseFloat(sheet.querySelector("#f-amount").value);
           if (!amount || amount <= 0) { sheet.querySelector("#f-amount").focus(); return; }
-          var categoryId = sheet.querySelector("#f-category").value;
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
           var session = App.session();
+
+          var categoryId;
+          if (mode === "new") {
+            var newName = sheet.querySelector("#f-new-name").value.trim();
+            if (!newName) { sheet.querySelector("#f-new-name").focus(); return; }
+            var newGoal = parseFloat(sheet.querySelector("#f-new-goal").value) || 0;
+            categoryId = Utils.uid();
+            Storage.savingsCategories.add(code(), { id: categoryId, icon: selectedEmoji, name: newName, goal: newGoal, createdAt: Date.now() });
+          } else {
+            categoryId = sheet.querySelector("#f-category").value;
+          }
+
           Storage.savingsDeposits.add(code(), {
             id: Utils.uid(), categoryId: categoryId, amount: amount, note: note, date: date, method: method,
             author: session.name, authorColor: session.color, createdAt: Date.now()
