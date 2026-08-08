@@ -55,6 +55,8 @@ var AccountView = (function () {
         '</div>' +
       '</div>' +
 
+      installCardHTML() +
+
       '<div class="card">' +
         '<div class="card-label-sm">' + Icons.get("users", 12) + ' Tu código personal</div>' +
         '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Compártelo con alguien que ya tenga su propia cuenta para conectarse contigo:</p>' +
@@ -95,6 +97,33 @@ var AccountView = (function () {
     attachEvents(container, session);
   }
 
+  function installCardHTML() {
+    if (typeof InstallPrompt === "undefined" || InstallPrompt.isStandalone()) return "";
+
+    if (InstallPrompt.canPromptNatively()) {
+      return (
+        '<div class="card">' +
+          '<div class="card-label-sm">' + Icons.get("plusCircle", 12) + ' Instalar app</div>' +
+          '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Agrégala a tu pantalla de inicio para abrirla como una app, sin el navegador.</p>' +
+          '<button class="btn btn-primary" id="btn-install-app">' + Icons.get("plusCircle", 15) + ' Instalar app</button>' +
+        '</div>'
+      );
+    }
+
+    if (InstallPrompt.isIOS()) {
+      return (
+        '<div class="card">' +
+          '<div class="card-label-sm">' + Icons.get("plusCircle", 12) + ' Instalar app</div>' +
+          '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 0">' +
+            'Toca el botón <strong>compartir</strong> de Safari (el cuadrito con la flecha hacia arriba) y elige <strong>"Agregar a pantalla de inicio"</strong>.' +
+          '</p>' +
+        '</div>'
+      );
+    }
+
+    return "";
+  }
+
   function syncStatusLabel(status) {
     if (!Storage.sync.isConfigured()) return "Guardado en este dispositivo";
     if (status === "ok") return "Sincronizado con la nube";
@@ -113,6 +142,13 @@ var AccountView = (function () {
   }
 
   function attachEvents(container, session) {
+    var installBtn = container.querySelector("#btn-install-app");
+    if (installBtn) {
+      installBtn.addEventListener("click", function () {
+        InstallPrompt.prompt().then(function () { App.refresh(); });
+      });
+    }
+
     container.querySelector("#btn-copy-code").addEventListener("click", function (e) {
       var btn = e.currentTarget;
       var restore = btn.innerHTML;

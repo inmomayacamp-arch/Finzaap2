@@ -7,13 +7,14 @@
    app, no los datos del usuario.
    ========================================================= */
 
-var CACHE_NAME = "finanza-shell-v1";
+var CACHE_NAME = "finanza-shell-v2";
 
 var SHELL_FILES = [
   "/",
   "/index.html",
   "/manifest.json",
   "/css/styles.css",
+  "/js/install.js",
   "/js/utils.js",
   "/js/icons.js",
   "/js/storage.js",
