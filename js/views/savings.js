@@ -8,6 +8,28 @@ var SavingsView = (function () {
 
   function code() { return App.session().code; }
 
+  // saldo disponible en la billetera (ingresos - egresos) para un metodo dado,
+  // igual al calculo de "Saldo disponible" en Inicio
+  function availableBalance(method) {
+    return Storage.transactions.list(code()).reduce(function (sum, t) {
+      if (t.method !== method) return sum;
+      return sum + (t.type === "ingreso" ? t.amount : -t.amount);
+    }, 0);
+  }
+
+  // crea el movimiento espejo en Inicio/Reporte para que ahorrar salga
+  // realmente del saldo disponible (y retirar regrese a el)
+  function pushLinkedTransaction(type, description, amount, method, date) {
+    var session = App.session();
+    var tx = {
+      id: Utils.uid(), type: type, amount: amount, description: description, category: "Ahorro",
+      note: "", date: date, method: method, recurrent: false,
+      author: session.name, authorColor: session.color, createdAt: Date.now()
+    };
+    Storage.transactions.add(code(), tx);
+    return tx.id;
+  }
+
   function render(container) {
     var categories = Storage.savingsCategories.list(code());
     var deposits = Storage.savingsDeposits.list(code());
@@ -95,14 +117,20 @@ var SavingsView = (function () {
         var id = btn.getAttribute("data-remove-category");
         Storage.savingsCategories.remove(code(), id);
         Storage.savingsDeposits.list(code()).filter(function (d) { return d.categoryId === id; })
-          .forEach(function (d) { Storage.savingsDeposits.remove(code(), d.id); });
+          .forEach(function (d) {
+            Storage.savingsDeposits.remove(code(), d.id);
+            if (d.linkedTxId) Storage.transactions.remove(code(), d.linkedTxId);
+          });
         App.refresh();
       });
     });
     container.querySelectorAll("[data-remove-deposit]").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
-        Storage.savingsDeposits.remove(code(), btn.getAttribute("data-remove-deposit"));
+        var id = btn.getAttribute("data-remove-deposit");
+        var dep = Storage.savingsDeposits.list(code()).find(function (d) { return d.id === id; });
+        Storage.savingsDeposits.remove(code(), id);
+        if (dep && dep.linkedTxId) Storage.transactions.remove(code(), dep.linkedTxId);
         App.refresh();
       });
     });
@@ -178,6 +206,7 @@ var SavingsView = (function () {
       '<div class="field-group">' +
         '<label class="field-label">Monto a depositar (MXN)</label>' +
         '<div class="amount-field collect"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01"></div>' +
+        '<div id="balance-hint" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>' +
       '</div>' +
       '<div class="field-textline"><input type="text" id="f-note" class="plain-input-underline" placeholder="Nota (opcional)"></div>' +
       '<div class="field-group"><label class="field-label">Fecha</label><input type="date" id="f-date" class="input" value="' + Utils.todayISO() + '"></div>' +
@@ -188,6 +217,7 @@ var SavingsView = (function () {
           '<button type="button" class="method-btn selected neutral" data-method="efectivo">' + Icons.get("cash", 15) + ' Efectivo</button>' +
         '</div>' +
       '</div>' +
+      '<p class="field-error" id="f-error" hidden></p>' +
       '<button class="btn btn-amber modal-footer-btn" id="f-submit">Guardar</button>';
 
     Modals.open({
@@ -196,6 +226,13 @@ var SavingsView = (function () {
         var method = "efectivo";
         var mode = hasCategories ? "existing" : "new";
         var selectedEmoji = EMOJI_OPTIONS[0];
+        var hintEl = sheet.querySelector("#balance-hint");
+        var errorEl = sheet.querySelector("#f-error");
+
+        function updateHint() {
+          hintEl.textContent = "Disponible en " + (method === "tarjeta" ? "tarjeta" : "efectivo") + ": " + Utils.formatMoney(availableBalance(method));
+        }
+        updateHint();
 
         if (hasCategories) {
           sheet.querySelectorAll("[data-mode]").forEach(function (btn) {
@@ -222,30 +259,50 @@ var SavingsView = (function () {
             method = btn.getAttribute("data-method");
             sheet.querySelectorAll("[data-method]").forEach(function (b) { b.classList.remove("selected", "neutral"); });
             btn.classList.add("selected", "neutral");
+            updateHint();
+            errorEl.hidden = true;
           });
         });
 
         sheet.querySelector("#f-submit").addEventListener("click", function () {
           var amount = parseFloat(sheet.querySelector("#f-amount").value);
           if (!amount || amount <= 0) { sheet.querySelector("#f-amount").focus(); return; }
+          errorEl.hidden = true;
+
+          if (mode === "new" && !sheet.querySelector("#f-new-name").value.trim()) {
+            sheet.querySelector("#f-new-name").focus();
+            return;
+          }
+
+          var available = availableBalance(method);
+          if (amount > available) {
+            errorEl.textContent = "No tienes suficiente saldo en " + (method === "tarjeta" ? "tarjeta" : "efectivo") + ". Disponible: " + Utils.formatMoney(available);
+            errorEl.hidden = false;
+            sheet.querySelector("#f-amount").focus();
+            return;
+          }
+
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
           var session = App.session();
 
-          var categoryId;
+          var categoryId, categoryName;
           if (mode === "new") {
-            var newName = sheet.querySelector("#f-new-name").value.trim();
-            if (!newName) { sheet.querySelector("#f-new-name").focus(); return; }
+            categoryName = sheet.querySelector("#f-new-name").value.trim();
             var newGoal = parseFloat(sheet.querySelector("#f-new-goal").value) || 0;
             categoryId = Utils.uid();
-            Storage.savingsCategories.add(code(), { id: categoryId, icon: selectedEmoji, name: newName, goal: newGoal, createdAt: Date.now() });
+            Storage.savingsCategories.add(code(), { id: categoryId, icon: selectedEmoji, name: categoryName, goal: newGoal, createdAt: Date.now() });
           } else {
             categoryId = sheet.querySelector("#f-category").value;
+            var cat = categories.find(function (c) { return c.id === categoryId; });
+            categoryName = cat ? cat.name : "Ahorro";
           }
+
+          var linkedTxId = pushLinkedTransaction("egreso", "Ahorro: " + categoryName, amount, method, date);
 
           Storage.savingsDeposits.add(code(), {
             id: Utils.uid(), categoryId: categoryId, amount: amount, note: note, date: date, method: method,
-            author: session.name, authorColor: session.color, createdAt: Date.now()
+            author: session.name, authorColor: session.color, createdAt: Date.now(), linkedTxId: linkedTxId
           });
           Modals.close();
           App.refresh();
@@ -274,6 +331,7 @@ var SavingsView = (function () {
       '<div class="field-group">' +
         '<label class="field-label">Monto (MXN)</label>' +
         '<div class="amount-field income" id="adjust-amount-field"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01"></div>' +
+        '<div id="balance-hint" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>' +
       '</div>' +
       '<div class="field-textline"><input type="text" id="f-note" class="plain-input-underline" placeholder="Nota (opcional)"></div>' +
       '<div class="field-group"><label class="field-label">Fecha</label><input type="date" id="f-date" class="input" value="' + Utils.todayISO() + '"></div>' +
@@ -284,6 +342,7 @@ var SavingsView = (function () {
           '<button type="button" class="method-btn selected neutral" data-method="efectivo">' + Icons.get("cash", 15) + ' Efectivo</button>' +
         '</div>' +
       '</div>' +
+      '<p class="field-error" id="f-error" hidden></p>' +
       '<button class="btn btn-success modal-footer-btn" id="f-submit">Agregar saldo</button>';
 
     Modals.open({
@@ -293,12 +352,24 @@ var SavingsView = (function () {
         var method = "efectivo";
         var amountField = sheet.querySelector("#adjust-amount-field");
         var submitBtn = sheet.querySelector("#f-submit");
+        var hintEl = sheet.querySelector("#balance-hint");
+        var errorEl = sheet.querySelector("#f-error");
+
+        function updateHint() {
+          if (direction === "add") {
+            hintEl.textContent = "Disponible en " + (method === "tarjeta" ? "tarjeta" : "efectivo") + ": " + Utils.formatMoney(availableBalance(method));
+          } else {
+            hintEl.textContent = "Ahorrado en esta meta: " + Utils.formatMoney(currentTotal);
+          }
+        }
+        updateHint();
 
         sheet.querySelectorAll("[data-direction]").forEach(function (btn) {
           btn.addEventListener("click", function () {
             direction = btn.getAttribute("data-direction");
             sheet.querySelectorAll("[data-direction]").forEach(function (b) { b.classList.remove("active"); });
             btn.classList.add("active");
+            errorEl.hidden = true;
             if (direction === "add") {
               amountField.classList.remove("expense");
               amountField.classList.add("income");
@@ -310,6 +381,7 @@ var SavingsView = (function () {
               submitBtn.className = "btn btn-danger-solid modal-footer-btn";
               submitBtn.textContent = "Quitar saldo";
             }
+            updateHint();
           });
         });
 
@@ -318,19 +390,45 @@ var SavingsView = (function () {
             method = btn.getAttribute("data-method");
             sheet.querySelectorAll("[data-method]").forEach(function (b) { b.classList.remove("selected", "neutral"); });
             btn.classList.add("selected", "neutral");
+            updateHint();
+            errorEl.hidden = true;
           });
         });
 
         submitBtn.addEventListener("click", function () {
           var amount = parseFloat(sheet.querySelector("#f-amount").value);
           if (!amount || amount <= 0) { sheet.querySelector("#f-amount").focus(); return; }
+          errorEl.hidden = true;
+
+          if (direction === "add") {
+            var available = availableBalance(method);
+            if (amount > available) {
+              errorEl.textContent = "No tienes suficiente saldo en " + (method === "tarjeta" ? "tarjeta" : "efectivo") + ". Disponible: " + Utils.formatMoney(available);
+              errorEl.hidden = false;
+              sheet.querySelector("#f-amount").focus();
+              return;
+            }
+          } else if (amount > currentTotal) {
+            errorEl.textContent = "No puedes quitar más de lo que has ahorrado aquí (" + Utils.formatMoney(currentTotal) + ").";
+            errorEl.hidden = false;
+            sheet.querySelector("#f-amount").focus();
+            return;
+          }
+
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
           var session = App.session();
           var signedAmount = direction === "add" ? amount : -amount;
+
+          var linkedTxId = pushLinkedTransaction(
+            direction === "add" ? "egreso" : "ingreso",
+            (direction === "add" ? "Ahorro: " : "Retiro de ahorro: ") + cat.name,
+            amount, method, date
+          );
+
           Storage.savingsDeposits.add(code(), {
             id: Utils.uid(), categoryId: categoryId, amount: signedAmount, note: note, date: date, method: method,
-            author: session.name, authorColor: session.color, createdAt: Date.now()
+            author: session.name, authorColor: session.color, createdAt: Date.now(), linkedTxId: linkedTxId
           });
           Modals.close();
           App.refresh();
