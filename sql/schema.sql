@@ -1,5 +1,5 @@
 -- =========================================================
--- Finanza — schema de Supabase
+-- FinzApp — schema de Supabase
 --
 -- Pega TODO este archivo en el SQL Editor de tu proyecto de
 -- Supabase (Project → SQL Editor → New query) y dale "Run".

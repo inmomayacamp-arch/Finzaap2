@@ -1,5 +1,5 @@
 -- =========================================================
--- Finanza — agrega columnas que faltaban (causaban que ciertos
+-- FinzApp — agrega columnas que faltaban (causaban que ciertos
 -- guardados fallaran en silencio contra Supabase)
 --
 -- Pega TODO este archivo en el SQL Editor de Supabase y dale

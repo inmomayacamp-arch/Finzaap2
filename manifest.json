@@ -1,6 +1,6 @@
 {
-  "name": "Finanza — Control de gastos compartido",
-  "short_name": "Finanza",
+  "name": "FinzApp — Control de gastos compartido",
+  "short_name": "FinzApp",
   "description": "Registra ingresos, egresos, cobros, pagos y metas de ahorro, y compártelo con quien quieras.",
   "start_url": "/",
   "scope": "/",

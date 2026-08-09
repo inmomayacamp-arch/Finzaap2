@@ -1,5 +1,5 @@
 -- =========================================================
--- Finanza — migración a login real (correo + contraseña)
+-- FinzApp — migración a login real (correo + contraseña)
 --
 -- Pega TODO este archivo en el SQL Editor de Supabase y dale
 -- "Run". Esto se agrega AL script anterior (sql/schema.sql),
