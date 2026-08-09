@@ -40,6 +40,7 @@ var Icons = (function () {
     users: '<path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" ' + STROKE + '/>',
     plusCircle: '<circle cx="12" cy="12" r="9" ' + STROKE + '/><path d="M12 8v8M8 12h8" ' + STROKE + '/>',
     edit: '<path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 15.5V20Z" ' + STROKE + '/><path d="M13.5 6.5 17.5 10.5" ' + STROKE + '/>',
+    share: '<circle cx="18" cy="5" r="2.6" ' + STROKE + '/><circle cx="6" cy="12" r="2.6" ' + STROKE + '/><circle cx="18" cy="19" r="2.6" ' + STROKE + '/><path d="M8.3 10.6 15.7 6.4M8.3 13.4l7.4 4.2" ' + STROKE + '/>',
     shield: '<path d="M12 3 5 6v5.5c0 4.5 3 7.2 7 8.5 4-1.3 7-4 7-8.5V6l-7-3Z" ' + STROKE + '/>'
   };
 

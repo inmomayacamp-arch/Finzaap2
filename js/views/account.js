@@ -64,6 +64,7 @@ var AccountView = (function () {
           '<span class="share-code">' + (session.inviteCode || session.code) + '</span>' +
           '<button class="btn btn-secondary btn-pill" id="btn-copy-code">' + Icons.get("copy", 14) + ' Copiar</button>' +
         '</div>' +
+        '<button class="btn btn-primary" id="btn-share-invite" style="margin-top:10px">' + Icons.get("share", 15) + ' Compartir invitación</button>' +
         '<div class="sync-status-text ' + (status === "ok" ? "ok" : "err") + '">' +
           Icons.get(status === "ok" ? "wifi" : "wifiOff", 14) + " " +
           syncStatusLabel(status) +
@@ -162,6 +163,29 @@ var AccountView = (function () {
         navigator.clipboard.writeText(codeToCopy).then(done).catch(function () { fallbackCopy(codeToCopy, done); });
       } else {
         fallbackCopy(codeToCopy, done);
+      }
+    });
+
+    container.querySelector("#btn-share-invite").addEventListener("click", function (e) {
+      var btn = e.currentTarget;
+      var codeToShare = session.inviteCode || session.code;
+      var link = window.location.origin + "/";
+      var message = "¡Únete a mí en FinzApp! 💜 Usa mi código " + codeToShare + " para conectarte y llevar juntos nuestras finanzas: " + link;
+
+      if (navigator.share) {
+        navigator.share({ title: "FinzApp", text: message }).catch(function () {});
+        return;
+      }
+
+      var restore = btn.innerHTML;
+      var done = function () {
+        btn.innerHTML = Icons.get("check", 15) + ' Mensaje copiado';
+        setTimeout(function () { btn.innerHTML = restore; }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(message).then(done).catch(function () { fallbackCopy(message, done); });
+      } else {
+        fallbackCopy(message, done);
       }
     });
 

@@ -202,12 +202,12 @@ var ReportView = (function () {
       });
     });
 
-    container.querySelector("#btn-export-pdf").addEventListener("click", function () {
-      exportPDF(inPeriod, range);
+    container.querySelector("#btn-export-pdf").addEventListener("click", function (e) {
+      exportPDF(inPeriod, range, e.currentTarget);
     });
   }
 
-  function exportPDF(inPeriod, range) {
+  function exportPDF(inPeriod, range, btn) {
     var income = inPeriod.filter(function (t) { return t.type === "ingreso"; }).reduce(function (s, t) { return s + t.amount; }, 0);
     var expense = inPeriod.filter(function (t) { return t.type === "egreso"; }).reduce(function (s, t) { return s + t.amount; }, 0);
     var balance = income - expense;
@@ -231,8 +231,32 @@ var ReportView = (function () {
         }).join("") +
       '</tbody></table>';
 
-    document.getElementById("print-report").innerHTML = html;
-    window.print();
+    var printEl = document.getElementById("print-report");
+    printEl.innerHTML = html;
+
+    if (typeof html2pdf === "undefined") {
+      window.print(); // respaldo si la librería no cargó (ej. sin internet)
+      return;
+    }
+
+    var restore = btn.innerHTML;
+    btn.innerHTML = "Generando…";
+    btn.disabled = true;
+
+    var filename = "FinzApp-Reporte-" + Utils.todayISO() + ".pdf";
+    html2pdf().set({
+      margin: 10,
+      filename: filename,
+      html2canvas: { scale: 2, backgroundColor: "#ffffff" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    }).from(printEl).save().then(function () {
+      btn.innerHTML = restore;
+      btn.disabled = false;
+    }).catch(function () {
+      btn.innerHTML = restore;
+      btn.disabled = false;
+      window.print();
+    });
   }
 
   return { render: render };
