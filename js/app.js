@@ -65,25 +65,37 @@ var App = (function () {
     syncBackGuard();
   }
 
-  // Mantiene como mucho UNA entrada extra de historial por encima de la
-  // base ("inicio", sin nada abierto): mientras haya algo que "deshacer"
-  // con el botón atrás (estar en otra sección y/o tener un modal abierto),
-  // hay una entrada extra esperando. Así, un solo atrás siempre alcanza
-  // para cerrar el modal y/o volver a Inicio en vez de salir de la app;
-  // y una vez en Inicio sin nada abierto, atrás vuelve a comportarse
-  // normal. Se llama tanto al cambiar de pestaña como al abrir/cerrar
-  // un modal (ver Modals.open/close en modals.js).
+  // Cada "cosa que se puede deshacer con el botón atrás" suma un nivel
+  // de profundidad en el historial: estar en otra sección (no Inicio)
+  // cuenta 1, y tener un modal abierto encima cuenta 1 más. Así, un
+  // atrás con un modal abierto SOLO cierra el modal y te deja en la
+  // sección donde estabas; y un atrás sin modal (estando en otra
+  // sección) te regresa directo a Inicio. Sin nada abierto y en
+  // Inicio, atrás vuelve a comportarse normal (sale de la app). Se
+  // llama tanto al cambiar de pestaña como al abrir un modal (ver
+  // Modals.open en modals.js).
+  function neededBackDepth() {
+    var d = currentTab !== "inicio" ? 1 : 0;
+    if (typeof Modals !== "undefined" && Modals.isOpen && Modals.isOpen()) d++;
+    return d;
+  }
+
   function syncBackGuard() {
     if (typeof history === "undefined" || !history.pushState) return;
-    var modalOpen = typeof Modals !== "undefined" && Modals.isOpen && Modals.isOpen();
-    var needsGuard = currentTab !== "inicio" || modalOpen;
-    var isGuarded = !!(history.state && history.state.guard);
-    if (needsGuard && !isGuarded) history.pushState({ guard: true }, "");
+    var needed = neededBackDepth();
+    var have = (history.state && history.state.depth) || 0;
+    while (have < needed) {
+      have++;
+      history.pushState({ depth: have }, "");
+    }
   }
 
   function handlePopState() {
     var modalWasOpen = typeof Modals !== "undefined" && Modals.isOpen && Modals.isOpen();
-    if (modalWasOpen) Modals.close();
+    if (modalWasOpen) {
+      Modals.close();
+      return; // solo cierra el modal, se queda en la seccion actual
+    }
     if (currentTab !== "inicio") navigate("inicio");
   }
 
@@ -105,7 +117,7 @@ var App = (function () {
     currentTab = "inicio";
     renderNav();
     renderCurrentView();
-    if (typeof history !== "undefined" && history.replaceState) history.replaceState({}, "");
+    if (typeof history !== "undefined" && history.replaceState) history.replaceState({ depth: 0 }, "");
 
     if (Storage.sync.isConfigured()) {
       var code = session().code;
