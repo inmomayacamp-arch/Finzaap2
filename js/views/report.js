@@ -244,12 +244,21 @@ var ReportView = (function () {
     btn.disabled = true;
 
     var filename = "FinzApp-Reporte-" + Utils.todayISO() + ".pdf";
-    html2pdf().set({
-      margin: 10,
-      filename: filename,
-      html2canvas: { scale: 2, backgroundColor: "#ffffff" },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-    }).from(printEl).save().then(function () {
+
+    // Espera a que las fuentes (Outfit/DM Mono) terminen de cargar antes
+    // de capturar: si el navegador todavia esta usando una fuente de
+    // reemplazo en ese instante, el texto puede medir mas ancho y
+    // desbordar las columnas de la tabla en el PDF resultante.
+    var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+
+    fontsReady.then(function () {
+      return html2pdf().set({
+        margin: 10,
+        filename: filename,
+        html2canvas: { scale: 2, backgroundColor: "#ffffff" },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      }).from(printEl).save();
+    }).then(function () {
       btn.innerHTML = restore;
       btn.disabled = false;
     }).catch(function () {
