@@ -103,6 +103,21 @@ input{ font-family:inherit; }
 .input:focus{ border-color:var(--purple-400); background:var(--surface); }
 .input-code{ text-transform:uppercase; letter-spacing:2px; text-align:center; font-weight:700; }
 
+.password-field{ position:relative; }
+.password-field .input{ padding-right:46px; }
+.password-toggle{
+  position:absolute;
+  right:4px; top:50%;
+  transform:translateY(-50%);
+  width:34px; height:34px;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:none;
+  color:var(--text-muted);
+  cursor:pointer;
+  border-radius:999px;
+}
+.password-toggle:hover{ background:var(--hover-tint); color:var(--text-tertiary); }
+
 .btn{
   width:100%;
   border:none;

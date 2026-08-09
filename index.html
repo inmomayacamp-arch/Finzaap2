@@ -45,7 +45,10 @@
         <h1>Iniciar sesión</h1>
         <p class="setup-sub">Entra con tu correo y contraseña</p>
         <input type="email" id="login-email" class="input" placeholder="Correo electrónico" autocomplete="email">
-        <input type="password" id="login-password" class="input" placeholder="Contraseña" autocomplete="current-password">
+        <div class="password-field">
+          <input type="password" id="login-password" class="input" placeholder="Contraseña" autocomplete="current-password">
+          <button type="button" class="password-toggle" data-toggle-password="login-password" title="Mostrar contraseña" aria-label="Mostrar contraseña"></button>
+        </div>
         <button class="btn btn-primary" id="btn-login-submit">Entrar</button>
         <button class="btn-link" id="btn-go-forgot">¿Olvidaste tu contraseña?</button>
         <p class="field-error" id="login-error" hidden></p>
@@ -71,7 +74,10 @@
         <p class="setup-sub">Tu nombre aparecerá en cada registro que hagas</p>
         <input type="text" id="signup-name" class="input" placeholder="Tu nombre" maxlength="24" autocomplete="given-name">
         <input type="email" id="signup-email" class="input" placeholder="Correo electrónico" autocomplete="email">
-        <input type="password" id="signup-password" class="input" placeholder="Contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+        <div class="password-field">
+          <input type="password" id="signup-password" class="input" placeholder="Contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+          <button type="button" class="password-toggle" data-toggle-password="signup-password" title="Mostrar contraseña" aria-label="Mostrar contraseña"></button>
+        </div>
         <button class="btn btn-primary" id="btn-signup-submit">Crear cuenta</button>
         <button class="btn-link" id="btn-go-login">← Ya tengo cuenta</button>
         <p class="field-error" id="signup-error" hidden></p>
@@ -129,7 +135,10 @@
         </div>
         <h1>Crea tu nueva contraseña</h1>
         <p class="setup-sub">Escribe la contraseña que vas a usar de ahora en adelante</p>
-        <input type="password" id="reset-password" class="input" placeholder="Nueva contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+        <div class="password-field">
+          <input type="password" id="reset-password" class="input" placeholder="Nueva contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+          <button type="button" class="password-toggle" data-toggle-password="reset-password" title="Mostrar contraseña" aria-label="Mostrar contraseña"></button>
+        </div>
         <button class="btn btn-primary" id="btn-reset-submit">Guardar contraseña</button>
         <p class="field-error" id="reset-error" hidden></p>
       </div>

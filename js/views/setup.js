@@ -35,11 +35,25 @@ var SetupView = (function () {
       name: profile.name,
       code: profile.householdCode,
       inviteCode: profile.inviteCode,
-      color: Utils.colorForAuthor(profile.name)
+      color: Utils.colorForAuthor(profile.name),
+      email: profile.email || ""
     };
   }
 
   function init() {
+    // ---- mostrar/ocultar contraseña ----
+    document.querySelectorAll("[data-toggle-password]").forEach(function (btn) {
+      btn.innerHTML = Icons.get("eye", 18);
+      btn.addEventListener("click", function () {
+        var input = $(btn.getAttribute("data-toggle-password"));
+        var showing = input.type === "text";
+        input.type = showing ? "password" : "text";
+        btn.innerHTML = Icons.get(showing ? "eye" : "eyeOff", 18);
+        btn.title = showing ? "Mostrar contraseña" : "Ocultar contraseña";
+        btn.setAttribute("aria-label", btn.title);
+      });
+    });
+
     // ---- login ----
     $("btn-login-submit").addEventListener("click", function () {
       hideError("login-error");

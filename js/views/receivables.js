@@ -129,8 +129,8 @@ var ReceivablesView = (function () {
     container.querySelectorAll("[data-mark-paid]").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
-        Storage.receivables.remove(code(), btn.getAttribute("data-mark-paid"));
-        App.refresh();
+        var item = Storage.receivables.list(code()).find(function (r) { return r.id === btn.getAttribute("data-mark-paid"); });
+        if (item) openConfirmCollectModal(item);
       });
     });
     container.querySelectorAll(".tx-row[data-item-id]").forEach(function (row) {
@@ -158,6 +158,49 @@ var ReceivablesView = (function () {
         Storage.recurringReceivables.remove(code(), btn.getAttribute("data-remove-template"));
         App.refresh();
       });
+    });
+  }
+
+  function openConfirmCollectModal(item) {
+    var html =
+      Modals.headerHTML({ icon: "check", theme: "collect", title: "Confirmar cobro", sub: Utils.escapeHtml(item.description || "Sin descripción") }) +
+      '<div class="detail-amount neutral">+' + Utils.formatMoney(item.amount) + '</div>' +
+      '<p style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:16px">Esto se <strong>agregará</strong> a tu saldo disponible.</p>' +
+      '<div class="field-group">' +
+        '<label class="field-label">¿En qué método lo recibiste?</label>' +
+        '<div class="method-row">' +
+          '<button type="button" class="method-btn" data-method="tarjeta">' + Icons.get("card", 15) + ' Tarjeta</button>' +
+          '<button type="button" class="method-btn selected collect" data-method="efectivo">' + Icons.get("cash", 15) + ' Efectivo</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="btn btn-secondary-outline" data-modal-close>Cancelar</button>' +
+        '<button class="btn btn-amber" id="btn-confirm-collect">Confirmar cobro</button>' +
+      '</div>';
+
+    Modals.open({
+      html: html,
+      onMount: function (sheet) {
+        var method = "efectivo";
+        sheet.querySelectorAll("[data-method]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            method = btn.getAttribute("data-method");
+            sheet.querySelectorAll("[data-method]").forEach(function (b) { b.classList.remove("selected", "collect"); });
+            btn.classList.add("selected", "collect");
+          });
+        });
+        sheet.querySelector("#btn-confirm-collect").addEventListener("click", function () {
+          var session = App.session();
+          Storage.transactions.add(code(), {
+            id: Utils.uid(), type: "ingreso", amount: item.amount, description: item.description || "Cobro", category: "Por cobrar",
+            note: item.note || "", date: Utils.todayISO(), method: method, recurrent: false,
+            author: session.name, authorColor: session.color, createdAt: Date.now()
+          });
+          Storage.receivables.remove(code(), item.id);
+          Modals.close();
+          App.refresh();
+        });
+      }
     });
   }
 

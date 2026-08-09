@@ -30,7 +30,7 @@ var Auth = (function () {
     return msg;
   }
 
-  function createProfile(userId, name) {
+  function createProfile(userId, name, email) {
     var c = client();
     var code = Utils.generateAccountCode();
     return c.from("accounts").insert({ code: code, created_at: Date.now() })
@@ -40,25 +40,28 @@ var Auth = (function () {
           id: userId, name: name, invite_code: code, household_code: code, created_at: Date.now()
         });
       })
-      .then(function (res) { if (res.error) throw res.error; return { id: userId, name: name, inviteCode: code, householdCode: code }; });
+      .then(function (res) { if (res.error) throw res.error; return { id: userId, name: name, inviteCode: code, householdCode: code, email: email || null }; });
   }
 
   function loadOrCreateProfile(userId, fallbackName) {
     var c = client();
-    return c.from("profiles").select("*").eq("id", userId).maybeSingle()
-      .then(function (res) {
-        if (res.error) throw res.error;
-        if (res.data) {
-          return { id: res.data.id, name: res.data.name, inviteCode: res.data.invite_code, householdCode: res.data.household_code };
-        }
-        // primer login tras confirmar el correo: el perfil aun no existia
-        var name = fallbackName || localStorage.getItem(PENDING_NAME_KEY) || "Usuario";
-        return createProfile(userId, name);
-      })
-      .then(function (profile) {
-        localStorage.removeItem(PENDING_NAME_KEY);
-        return profile;
-      });
+    return c.auth.getUser().then(function (userRes) {
+      var email = userRes.data && userRes.data.user ? userRes.data.user.email : null;
+      return c.from("profiles").select("*").eq("id", userId).maybeSingle()
+        .then(function (res) {
+          if (res.error) throw res.error;
+          if (res.data) {
+            return { id: res.data.id, name: res.data.name, inviteCode: res.data.invite_code, householdCode: res.data.household_code, email: email };
+          }
+          // primer login tras confirmar el correo: el perfil aun no existia
+          var name = fallbackName || localStorage.getItem(PENDING_NAME_KEY) || "Usuario";
+          return createProfile(userId, name, email);
+        })
+        .then(function (profile) {
+          localStorage.removeItem(PENDING_NAME_KEY);
+          return profile;
+        });
+    });
   }
 
   function signUp(name, email, password) {
@@ -69,7 +72,7 @@ var Auth = (function () {
         if (!res.data.session) {
           return { needsConfirmation: true };
         }
-        return createProfile(res.data.user.id, name).then(function (profile) {
+        return createProfile(res.data.user.id, name, res.data.user.email).then(function (profile) {
           return { needsConfirmation: false, profile: profile };
         });
       });

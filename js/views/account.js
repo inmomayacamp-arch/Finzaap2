@@ -46,6 +46,7 @@ var AccountView = (function () {
           '<div>' +
             '<div class="profile-hero-name">' + Utils.escapeHtml(session.name) + '</div>' +
             '<div class="profile-hero-sub">' + Utils.MONTHS_CAP[now.getMonth()].toLowerCase() + ' ' + now.getFullYear() + '</div>' +
+            (session.email ? '<div class="profile-hero-sub" style="opacity:0.7;margin-top:1px">' + Utils.escapeHtml(session.email) + '</div>' : '') +
           '</div>' +
         '</div>' +
         '<div class="profile-stats">' +

@@ -128,8 +128,8 @@ var PayablesView = (function () {
     container.querySelectorAll("[data-mark-paid]").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
-        Storage.payables.remove(code(), btn.getAttribute("data-mark-paid"));
-        App.refresh();
+        var item = Storage.payables.list(code()).find(function (p) { return p.id === btn.getAttribute("data-mark-paid"); });
+        if (item) openConfirmPayModal(item);
       });
     });
     container.querySelectorAll(".tx-row[data-item-id]").forEach(function (row) {
@@ -157,6 +157,49 @@ var PayablesView = (function () {
         Storage.recurringPayables.remove(code(), btn.getAttribute("data-remove-template"));
         App.refresh();
       });
+    });
+  }
+
+  function openConfirmPayModal(item) {
+    var html =
+      Modals.headerHTML({ icon: "check", theme: "pay", title: "Confirmar pago", sub: Utils.escapeHtml(item.description || "Sin descripción") }) +
+      '<div class="detail-amount negative">-' + Utils.formatMoney(item.amount) + '</div>' +
+      '<p style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:16px">Esto se <strong>descontará</strong> de tu saldo disponible.</p>' +
+      '<div class="field-group">' +
+        '<label class="field-label">¿Con qué método pagaste?</label>' +
+        '<div class="method-row">' +
+          '<button type="button" class="method-btn" data-method="tarjeta">' + Icons.get("card", 15) + ' Tarjeta</button>' +
+          '<button type="button" class="method-btn selected pay" data-method="efectivo">' + Icons.get("cash", 15) + ' Efectivo</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="btn btn-secondary-outline" data-modal-close>Cancelar</button>' +
+        '<button class="btn btn-indigo" id="btn-confirm-pay">Confirmar pago</button>' +
+      '</div>';
+
+    Modals.open({
+      html: html,
+      onMount: function (sheet) {
+        var method = "efectivo";
+        sheet.querySelectorAll("[data-method]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            method = btn.getAttribute("data-method");
+            sheet.querySelectorAll("[data-method]").forEach(function (b) { b.classList.remove("selected", "pay"); });
+            btn.classList.add("selected", "pay");
+          });
+        });
+        sheet.querySelector("#btn-confirm-pay").addEventListener("click", function () {
+          var session = App.session();
+          Storage.transactions.add(code(), {
+            id: Utils.uid(), type: "egreso", amount: item.amount, description: item.description || "Pago", category: "Por pagar",
+            note: item.note || "", date: Utils.todayISO(), method: method, recurrent: false,
+            author: session.name, authorColor: session.color, createdAt: Date.now()
+          });
+          Storage.payables.remove(code(), item.id);
+          Modals.close();
+          App.refresh();
+        });
+      }
     });
   }
 
