@@ -83,7 +83,8 @@ var SavingsView = (function () {
             '<div class="cur">' + Utils.formatMoney(total) + '</div>' +
             (pct !== null ? '<div class="pct">' + pct + '%</div>' : '') +
           '</div>' +
-          '<button class="icon-btn danger" data-remove-category="' + cat.id + '" title="Eliminar categoría" style="margin-left:6px">' + Icons.get("close", 13) + '</button>' +
+          '<button class="icon-btn" data-edit-category="' + cat.id + '" title="Editar meta" style="margin-left:6px">' + Icons.get("edit", 13) + '</button>' +
+          '<button class="icon-btn danger" data-remove-category="' + cat.id + '" title="Eliminar meta" style="margin-left:4px">' + Icons.get("close", 13) + '</button>' +
         '</div>' +
         (cat.goal > 0 ? '<div class="progress-track"><div class="progress-fill' + (pct >= 100 ? " complete" : "") + '" style="width:' + pct + '%"></div></div>' : '') +
         (sorted.length
@@ -101,13 +102,22 @@ var SavingsView = (function () {
   }
 
   function attachEvents(container) {
-    container.querySelector("#btn-add-category").addEventListener("click", openCategoryModal);
+    container.querySelector("#btn-add-category").addEventListener("click", function () { openCategoryModal(); });
     container.querySelector("#btn-add-deposit").addEventListener("click", function () { openDepositModal(); });
 
     container.querySelectorAll(".goal-card").forEach(function (card) {
       card.addEventListener("click", function (e) {
-        if (e.target.closest("[data-remove-category]") || e.target.closest(".deposit-row")) return;
+        if (e.target.closest("[data-remove-category]") || e.target.closest("[data-edit-category]") || e.target.closest(".deposit-row")) return;
         openAdjustModal(card.getAttribute("data-category-id"));
+      });
+    });
+
+    container.querySelectorAll("[data-edit-category]").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = btn.getAttribute("data-edit-category");
+        var cat = Storage.savingsCategories.list(code()).find(function (c) { return c.id === id; });
+        if (cat) openCategoryModal(cat);
       });
     });
 
@@ -136,24 +146,29 @@ var SavingsView = (function () {
     });
   }
 
-  function openCategoryModal() {
+  function openCategoryModal(existing) {
+    var isEdit = !!existing;
     var html =
-      Modals.headerHTML({ icon: "piggy", theme: "savings", title: "Nueva meta de ahorro", sub: "Solo crea la meta, sin dinero todavía" }) +
+      Modals.headerHTML({
+        icon: "piggy", theme: "savings",
+        title: isEdit ? "Editar meta" : "Nueva meta de ahorro",
+        sub: isEdit ? "Cambia el ícono, nombre o meta" : "Solo crea la meta, sin dinero todavía"
+      }) +
       '<div class="field-group"><label class="field-label">Ícono</label>' +
-        '<div class="emoji-grid">' + EMOJI_OPTIONS.map(function (e, i) {
-          return '<div class="emoji-opt' + (i === 0 ? " selected" : "") + '" data-emoji="' + e + '">' + e + '</div>';
+        '<div class="emoji-grid">' + EMOJI_OPTIONS.map(function (e) {
+          return '<div class="emoji-opt' + (e === (isEdit ? existing.icon : EMOJI_OPTIONS[0]) ? " selected" : "") + '" data-emoji="' + e + '">' + e + '</div>';
         }).join("") + '</div>' +
       '</div>' +
-      '<div class="field-textline"><input type="text" id="f-name" class="plain-input-underline" placeholder="Nombre (ej. Fondo de emergencia)"></div>' +
+      '<div class="field-textline"><input type="text" id="f-name" class="plain-input-underline" placeholder="Nombre (ej. Fondo de emergencia)" value="' + (isEdit ? Utils.escapeHtml(existing.name || "") : "") + '"></div>' +
       '<div class="field-group"><label class="field-label">Meta en pesos (opcional)</label>' +
-        '<div class="amount-field collect"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-goal" placeholder="0" min="0" step="0.01"></div>' +
+        '<div class="amount-field collect"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-goal" placeholder="0" min="0" step="0.01" value="' + (isEdit && existing.goal > 0 ? existing.goal : "") + '"></div>' +
       '</div>' +
-      '<button class="btn btn-amber modal-footer-btn" id="f-submit">Crear meta</button>';
+      '<button class="btn btn-amber modal-footer-btn" id="f-submit">' + (isEdit ? "Guardar cambios" : "Crear meta") + '</button>';
 
     Modals.open({
       html: html,
       onMount: function (sheet) {
-        var selected = EMOJI_OPTIONS[0];
+        var selected = isEdit ? existing.icon : EMOJI_OPTIONS[0];
         sheet.querySelectorAll("[data-emoji]").forEach(function (opt) {
           opt.addEventListener("click", function () {
             selected = opt.getAttribute("data-emoji");
@@ -165,7 +180,11 @@ var SavingsView = (function () {
           var name = sheet.querySelector("#f-name").value.trim();
           if (!name) { sheet.querySelector("#f-name").focus(); return; }
           var goal = parseFloat(sheet.querySelector("#f-goal").value) || 0;
-          Storage.savingsCategories.add(code(), { id: Utils.uid(), icon: selected, name: name, goal: goal, createdAt: Date.now() });
+          if (isEdit) {
+            Storage.savingsCategories.update(code(), existing.id, { icon: selected, name: name, goal: goal });
+          } else {
+            Storage.savingsCategories.add(code(), { id: Utils.uid(), icon: selected, name: name, goal: goal, createdAt: Date.now() });
+          }
           Modals.close();
           App.refresh();
         });

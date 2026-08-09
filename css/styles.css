@@ -751,6 +751,14 @@ input{ font-family:inherit; }
   color:var(--text);
   box-shadow:0 2px 6px rgba(20,20,43,0.08);
 }
+#direction-toggle button[data-direction="add"].active{
+  background:var(--green-50);
+  color:var(--green-500);
+}
+#direction-toggle button[data-direction="remove"].active{
+  background:var(--red-50);
+  color:var(--red-500);
+}
 
 .period-nav{
   display:flex;
