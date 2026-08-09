@@ -62,6 +62,27 @@ var App = (function () {
     renderCurrentView();
     document.getElementById("main-content").scrollTop = 0;
     window.scrollTo(0, 0);
+    syncHistory(tabId);
+  }
+
+  // Mantiene como mucho UNA entrada extra de historial por encima de
+  // "inicio": así, sin importar cuántas secciones se visiten, el botón
+  // atrás siempre regresa directo a Inicio en un solo paso (en vez de
+  // salir de la app), y desde Inicio el atrás vuelve a comportarse normal.
+  function syncHistory(tabId) {
+    if (typeof history === "undefined" || !history.pushState) return;
+    var onExtraEntry = history.state && history.state.tab && history.state.tab !== "inicio";
+    if (tabId === "inicio") {
+      if (onExtraEntry) history.replaceState({ tab: "inicio" }, "");
+    } else if (onExtraEntry) {
+      history.replaceState({ tab: tabId }, "");
+    } else {
+      history.pushState({ tab: tabId }, "");
+    }
+  }
+
+  function handlePopState() {
+    if (currentTab !== "inicio") navigate("inicio");
   }
 
   function renderCurrentView() {
@@ -82,6 +103,7 @@ var App = (function () {
     currentTab = "inicio";
     renderNav();
     renderCurrentView();
+    if (typeof history !== "undefined" && history.replaceState) history.replaceState({ tab: "inicio" }, "");
 
     if (Storage.sync.isConfigured()) {
       var code = session().code;
@@ -130,6 +152,8 @@ var App = (function () {
       }).catch(function (e) { console.warn("Auth init:", e.message); });
     }, 60); // le da chance al listener de recovery a disparar primero si aplica
   }
+
+  window.addEventListener("popstate", handlePopState);
 
   return { session: session, navigate: navigate, refresh: refresh, boot: boot, showSetup: showSetup, init: init };
 })();
