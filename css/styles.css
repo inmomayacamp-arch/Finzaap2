@@ -151,6 +151,12 @@ input{ font-family:inherit; }
   color:#fff;
   box-shadow:0 8px 20px rgba(99,102,241,0.28);
 }
+.btn-danger-outline{
+  background:var(--red-50);
+  border:1.5px solid #fbd0d0;
+  color:var(--red-500);
+}
+.btn-danger-outline:hover{ background:#fddede; }
 
 .btn-pill{
   width:auto;

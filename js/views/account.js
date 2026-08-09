@@ -92,7 +92,8 @@ var AccountView = (function () {
         statRow("arrowUpRight", "Flujo esperado", Utils.formatMoney(expectedFlow)) +
       '</div>' +
 
-      '<button class="btn btn-danger-solid" id="btn-logout" style="margin-top:6px">' + Icons.get("logout", 15) + ' Cerrar sesión</button>';
+      '<button class="btn btn-danger-solid" id="btn-logout" style="margin-top:6px">' + Icons.get("logout", 15) + ' Cerrar sesión</button>' +
+      '<button class="btn btn-danger-outline" id="btn-delete-data" style="margin-top:10px">' + Icons.get("trash", 15) + ' Eliminar todos mis datos</button>';
 
     attachEvents(container, session);
   }
@@ -182,6 +183,55 @@ var AccountView = (function () {
         Storage.sync.unsubscribe();
         Auth.signOut().then(function () { App.showSetup(); }).catch(function () { App.showSetup(); });
       }
+    });
+
+    container.querySelector("#btn-delete-data").addEventListener("click", function () {
+      openDeleteDataModal(session);
+    });
+  }
+
+  function openDeleteDataModal(session) {
+    var shared = session.inviteCode && session.code !== session.inviteCode;
+    var html =
+      Modals.headerHTML({
+        icon: "trash", theme: "expense",
+        title: "Eliminar todos los datos",
+        sub: "Esta acción no se puede deshacer"
+      }) +
+      '<p style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px">' +
+        'Se eliminarán <strong>todos</strong> tus ingresos, egresos, cobros, pagos, plantillas recurrentes y metas de ahorro, tanto de este dispositivo como de la nube.' +
+      '</p>' +
+      '<p style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:20px">' +
+        (shared
+          ? 'Tu cuenta está sincronizada con alguien más: <strong>esos datos también se eliminarán para esa persona</strong>, porque comparten el mismo espacio.'
+          : 'Si en algún momento compartes tu código con alguien más, esta acción también borraría los datos que vean en ese espacio compartido.') +
+      '</p>' +
+      '<div class="detail-actions">' +
+        '<button class="btn btn-secondary-outline" data-modal-close>Cancelar</button>' +
+        '<button class="btn btn-danger-solid" id="btn-confirm-delete-data">Eliminar todo</button>' +
+      '</div>';
+
+    Modals.open({
+      html: html,
+      onMount: function (sheet) {
+        sheet.querySelector("#btn-confirm-delete-data").addEventListener("click", function () {
+          deleteAllData();
+          Modals.close();
+          App.refresh();
+        });
+      }
+    });
+  }
+
+  function deleteAllData() {
+    var acc = code();
+    [
+      Storage.transactions, Storage.recurringTransactions,
+      Storage.receivables, Storage.payables,
+      Storage.recurringReceivables, Storage.recurringPayables,
+      Storage.savingsCategories, Storage.savingsDeposits
+    ].forEach(function (api) {
+      api.list(acc).forEach(function (item) { api.remove(acc, item.id); });
     });
   }
 
