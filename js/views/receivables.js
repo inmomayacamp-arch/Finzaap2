@@ -93,7 +93,7 @@ var ReceivablesView = (function () {
         '<div class="tx-amount" style="color:var(--amber-500)">' + Utils.formatMoney(item.amount) + '</div>' +
         '<div class="tx-actions">' +
           '<button class="icon-btn confirm" data-mark-paid="' + item.id + '" title="Marcar como cobrado">' + Icons.get("check", 14) + '</button>' +
-          '<button class="icon-btn" data-remove="' + item.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
+          '<button class="icon-btn danger" data-remove="' + item.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
         '</div>' +
       '</div>'
     );
@@ -110,7 +110,7 @@ var ReceivablesView = (function () {
         '<div class="tx-amount" style="color:var(--amber-500)">' + Utils.formatMoney(tpl.amount) + '</div>' +
         '<div class="tx-actions">' +
           '<button class="icon-btn add-tpl theme-amber" data-use-template="' + tpl.id + '" title="Crear cobro con esta plantilla">' + Icons.get("plus", 16) + '</button>' +
-          '<button class="icon-btn" data-remove-template="' + tpl.id + '" title="Eliminar plantilla">' + Icons.get("close", 13) + '</button>' +
+          '<button class="icon-btn danger" data-remove-template="' + tpl.id + '" title="Eliminar plantilla">' + Icons.get("close", 13) + '</button>' +
         '</div>' +
       '</div>'
     );
@@ -175,7 +175,7 @@ var ReceivablesView = (function () {
     var html =
       Modals.headerHTML({ icon: "down", theme: "collect", title: isEdit ? "Editar cobro" : "Pago por cobrar", sub: isEdit ? "Modifica el movimiento" : "Registra lo que te deben",
         headerRight: (isEdit ? "" : '<button class="recurring-toggle-btn theme-amber" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>') +
-          '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>' }) +
+          '<button class="icon-btn danger" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>' }) +
       '<div id="recurring-picker-slot"></div>' +
       '<div class="field-group">' +
         '<label class="field-label">Monto (MXN)</label>' +

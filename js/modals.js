@@ -69,7 +69,7 @@ var Modals = (function () {
             (opts.sub ? '<div class="modal-sub">' + opts.sub + '</div>' : '') +
           '</div>' +
         '</div>' +
-        (opts.headerRight || '<button class="icon-btn" data-modal-close>' + Icons.get("close", 16) + '</button>') +
+        (opts.headerRight || '<button class="icon-btn danger" data-modal-close>' + Icons.get("close", 16) + '</button>') +
       '</div>'
     );
   }

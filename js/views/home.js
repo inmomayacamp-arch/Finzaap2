@@ -168,7 +168,7 @@ var HomeView = (function () {
           '</div>' +
         '</div>' +
         '<div class="tx-amount ' + amountClass + '">' + sign + Utils.formatMoney(t.amount) + '</div>' +
-        '<button class="icon-btn tx-delete" data-remove-tx="' + t.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
+        '<button class="icon-btn danger tx-delete" data-remove-tx="' + t.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
       '</div>'
     );
   }
@@ -248,7 +248,7 @@ var HomeView = (function () {
         sub: isEdit ? "Modifica el movimiento" : "Registra el movimiento",
         headerRight:
           (isEdit ? "" : '<button class="recurring-toggle-btn theme-' + (isIncome ? "green" : "red") + '" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>') +
-          '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>'
+          '<button class="icon-btn danger" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>'
       }) +
       '<div id="recurring-picker-slot"></div>' +
       '<div class="field-group">' +

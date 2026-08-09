@@ -92,7 +92,7 @@ var PayablesView = (function () {
         '<div class="tx-amount" style="color:var(--indigo-500)">-' + Utils.formatMoney(item.amount) + '</div>' +
         '<div class="tx-actions">' +
           '<button class="icon-btn confirm" data-mark-paid="' + item.id + '" title="Marcar como pagado">' + Icons.get("check", 14) + '</button>' +
-          '<button class="icon-btn" data-remove="' + item.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
+          '<button class="icon-btn danger" data-remove="' + item.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
         '</div>' +
       '</div>'
     );
@@ -109,7 +109,7 @@ var PayablesView = (function () {
         '<div class="tx-amount" style="color:var(--indigo-500)">-' + Utils.formatMoney(tpl.amount) + '</div>' +
         '<div class="tx-actions">' +
           '<button class="icon-btn add-tpl theme-indigo" data-use-template="' + tpl.id + '" title="Crear pago con esta plantilla">' + Icons.get("plus", 16) + '</button>' +
-          '<button class="icon-btn" data-remove-template="' + tpl.id + '" title="Eliminar plantilla">' + Icons.get("close", 13) + '</button>' +
+          '<button class="icon-btn danger" data-remove-template="' + tpl.id + '" title="Eliminar plantilla">' + Icons.get("close", 13) + '</button>' +
         '</div>' +
       '</div>'
     );
@@ -174,7 +174,7 @@ var PayablesView = (function () {
     var html =
       Modals.headerHTML({ icon: "up", theme: "pay", title: isEdit ? "Editar pago" : "Pago por hacer", sub: isEdit ? "Modifica el movimiento" : "Registra un compromiso",
         headerRight: (isEdit ? "" : '<button class="recurring-toggle-btn theme-indigo" id="toggle-recurring">' + Icons.get("repeat", 14) + ' Recurrentes</button>') +
-          '<button class="icon-btn" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>' }) +
+          '<button class="icon-btn danger" data-modal-close style="margin-left:6px">' + Icons.get("close", 16) + '</button>' }) +
       '<div id="recurring-picker-slot"></div>' +
       '<div class="field-group">' +
         '<label class="field-label">Monto (MXN)</label>' +
