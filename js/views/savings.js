@@ -84,7 +84,6 @@ var SavingsView = (function () {
             (pct !== null ? '<div class="pct">' + pct + '%</div>' : '') +
           '</div>' +
           '<button class="icon-btn" data-edit-category="' + cat.id + '" title="Editar meta" style="margin-left:6px">' + Icons.get("edit", 13) + '</button>' +
-          '<button class="icon-btn danger" data-remove-category="' + cat.id + '" title="Eliminar meta" style="margin-left:4px">' + Icons.get("close", 13) + '</button>' +
         '</div>' +
         (cat.goal > 0 ? '<div class="progress-track"><div class="progress-fill' + (pct >= 100 ? " complete" : "") + '" style="width:' + pct + '%"></div></div>' : '') +
         (sorted.length
@@ -107,7 +106,7 @@ var SavingsView = (function () {
 
     container.querySelectorAll(".goal-card").forEach(function (card) {
       card.addEventListener("click", function (e) {
-        if (e.target.closest("[data-remove-category]") || e.target.closest("[data-edit-category]") || e.target.closest(".deposit-row")) return;
+        if (e.target.closest("[data-edit-category]") || e.target.closest(".deposit-row")) return;
         openAdjustModal(card.getAttribute("data-category-id"));
       });
     });
@@ -131,19 +130,15 @@ var SavingsView = (function () {
       });
     });
 
-    container.querySelectorAll("[data-remove-category]").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var id = btn.getAttribute("data-remove-category");
-        Storage.savingsCategories.remove(code(), id);
-        Storage.savingsDeposits.list(code()).filter(function (d) { return d.categoryId === id; })
-          .forEach(function (d) {
-            Storage.savingsDeposits.remove(code(), d.id);
-            if (d.linkedTxId) Storage.transactions.remove(code(), d.linkedTxId);
-          });
-        App.refresh();
+  }
+
+  function removeCategoryAndDeposits(id) {
+    Storage.savingsCategories.remove(code(), id);
+    Storage.savingsDeposits.list(code()).filter(function (d) { return d.categoryId === id; })
+      .forEach(function (d) {
+        Storage.savingsDeposits.remove(code(), d.id);
+        if (d.linkedTxId) Storage.transactions.remove(code(), d.linkedTxId);
       });
-    });
   }
 
   function openCategoryModal(existing) {
@@ -163,7 +158,12 @@ var SavingsView = (function () {
       '<div class="field-group"><label class="field-label">Meta en pesos (opcional)</label>' +
         '<div class="amount-field collect"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-goal" placeholder="0" min="0" step="0.01" value="' + (isEdit && existing.goal > 0 ? existing.goal : "") + '"></div>' +
       '</div>' +
-      '<button class="btn btn-amber modal-footer-btn" id="f-submit">' + (isEdit ? "Guardar cambios" : "Crear meta") + '</button>';
+      (isEdit
+        ? '<div class="detail-actions">' +
+            '<button class="btn btn-danger-outline" id="btn-delete-category">Eliminar</button>' +
+            '<button class="btn btn-amber" id="f-submit">Guardar cambios</button>' +
+          '</div>'
+        : '<button class="btn btn-amber modal-footer-btn" id="f-submit">Crear meta</button>');
 
     Modals.open({
       html: html,
@@ -188,6 +188,13 @@ var SavingsView = (function () {
           Modals.close();
           App.refresh();
         });
+        if (isEdit) {
+          sheet.querySelector("#btn-delete-category").addEventListener("click", function () {
+            removeCategoryAndDeposits(existing.id);
+            Modals.close();
+            App.refresh();
+          });
+        }
       }
     });
   }
