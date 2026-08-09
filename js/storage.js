@@ -118,7 +118,6 @@ var Storage = (function () {
     var dbClient = null;
     var status = "err"; // 'ok' | 'err' | 'busy' — 'err' hasta la primera operación exitosa
     var channel = null;
-    var onChangeCb = null;
 
     function camelToSnake(str) {
       return str.replace(/[A-Z]/g, function (c) { return "_" + c.toLowerCase(); });
@@ -228,19 +227,41 @@ var Storage = (function () {
 
     // ---- tiempo real: escucha cambios remotos y refresca ----
 
+    // Aplica el cambio directamente con los datos que ya trae el evento,
+    // en vez de re-descargar todo con pullAll: un pullAll disparado justo
+    // despues de nuestro propio insert podia llegar antes de que ese
+    // insert fuera visible via SELECT y sobreescribir el dato local
+    // recien agregado (por eso un deposito de ahorro podia "desaparecer"
+    // al instante aunque el descuento del saldo si quedara).
+    function applyRealtimeChange(code, entity, payload) {
+      var list = readList(code, entity);
+      if (payload.eventType === "DELETE") {
+        var oldId = payload.old && payload.old.id;
+        if (!oldId) return;
+        writeList(code, entity, list.filter(function (it) { return it.id !== oldId; }));
+        return;
+      }
+      var item = fromRow(payload.new);
+      if (!item.id) return;
+      var idx = list.findIndex(function (it) { return it.id === item.id; });
+      if (idx > -1) list[idx] = item; else list.unshift(item);
+      writeList(code, entity, list);
+    }
+
     function subscribe(code, onChange) {
       var c = client();
       if (!c) return;
       unsubscribe();
-      onChangeCb = Utils.debounce(function () {
-        pullAll(code).then(function () { if (onChange) onChange(); });
-      }, 350);
+      var notify = Utils.debounce(function () { if (onChange) onChange(); }, 120);
 
       var builder = c.channel("account-" + code);
       ENTITIES.forEach(function (entity) {
         builder = builder.on("postgres_changes",
           { event: "*", schema: "public", table: tableFor(entity), filter: "account_code=eq." + code },
-          onChangeCb
+          function (payload) {
+            applyRealtimeChange(code, entity, payload);
+            notify();
+          }
         );
       });
       channel = builder.subscribe(function (status, err) {
