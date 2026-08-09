@@ -326,7 +326,7 @@ var SavingsView = (function () {
       }) +
       '<div class="segmented" id="direction-toggle" style="margin-bottom:16px">' +
         '<button type="button" class="active" data-direction="add">Agregar saldo</button>' +
-        '<button type="button" data-direction="remove">Quitar saldo</button>' +
+        '<button type="button" data-direction="remove">Usar ahorro</button>' +
       '</div>' +
       '<div class="field-group">' +
         '<label class="field-label">Monto (MXN)</label>' +
@@ -379,7 +379,7 @@ var SavingsView = (function () {
               amountField.classList.remove("income");
               amountField.classList.add("expense");
               submitBtn.className = "btn btn-danger-solid modal-footer-btn";
-              submitBtn.textContent = "Quitar saldo";
+              submitBtn.textContent = "Usar ahorro";
             }
             updateHint();
           });
@@ -409,7 +409,7 @@ var SavingsView = (function () {
               return;
             }
           } else if (amount > currentTotal) {
-            errorEl.textContent = "No puedes quitar más de lo que has ahorrado aquí (" + Utils.formatMoney(currentTotal) + ").";
+            errorEl.textContent = "No puedes usar más de lo que has ahorrado aquí (" + Utils.formatMoney(currentTotal) + ").";
             errorEl.hidden = false;
             sheet.querySelector("#f-amount").focus();
             return;
@@ -420,11 +420,12 @@ var SavingsView = (function () {
           var session = App.session();
           var signedAmount = direction === "add" ? amount : -amount;
 
-          var linkedTxId = pushLinkedTransaction(
-            direction === "add" ? "egreso" : "ingreso",
-            (direction === "add" ? "Ahorro: " : "Retiro de ahorro: ") + cat.name,
-            amount, method, date
-          );
+          // "Agregar saldo" sale de tu billetera y queda como egreso en movimientos.
+          // "Usar ahorro" solo reduce la meta: el dinero ya salio de tu billetera
+          // cuando lo ahorraste, asi que no vuelve a sumarse como ingreso.
+          var linkedTxId = direction === "add"
+            ? pushLinkedTransaction("egreso", "Ahorro: " + cat.name, amount, method, date)
+            : null;
 
           Storage.savingsDeposits.add(code(), {
             id: Utils.uid(), categoryId: categoryId, amount: signedAmount, note: note, date: date, method: method,
