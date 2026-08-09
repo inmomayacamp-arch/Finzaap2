@@ -62,26 +62,28 @@ var App = (function () {
     renderCurrentView();
     document.getElementById("main-content").scrollTop = 0;
     window.scrollTo(0, 0);
-    syncHistory(tabId);
+    syncBackGuard();
   }
 
-  // Mantiene como mucho UNA entrada extra de historial por encima de
-  // "inicio": así, sin importar cuántas secciones se visiten, el botón
-  // atrás siempre regresa directo a Inicio en un solo paso (en vez de
-  // salir de la app), y desde Inicio el atrás vuelve a comportarse normal.
-  function syncHistory(tabId) {
+  // Mantiene como mucho UNA entrada extra de historial por encima de la
+  // base ("inicio", sin nada abierto): mientras haya algo que "deshacer"
+  // con el botón atrás (estar en otra sección y/o tener un modal abierto),
+  // hay una entrada extra esperando. Así, un solo atrás siempre alcanza
+  // para cerrar el modal y/o volver a Inicio en vez de salir de la app;
+  // y una vez en Inicio sin nada abierto, atrás vuelve a comportarse
+  // normal. Se llama tanto al cambiar de pestaña como al abrir/cerrar
+  // un modal (ver Modals.open/close en modals.js).
+  function syncBackGuard() {
     if (typeof history === "undefined" || !history.pushState) return;
-    var onExtraEntry = history.state && history.state.tab && history.state.tab !== "inicio";
-    if (tabId === "inicio") {
-      if (onExtraEntry) history.replaceState({ tab: "inicio" }, "");
-    } else if (onExtraEntry) {
-      history.replaceState({ tab: tabId }, "");
-    } else {
-      history.pushState({ tab: tabId }, "");
-    }
+    var modalOpen = typeof Modals !== "undefined" && Modals.isOpen && Modals.isOpen();
+    var needsGuard = currentTab !== "inicio" || modalOpen;
+    var isGuarded = !!(history.state && history.state.guard);
+    if (needsGuard && !isGuarded) history.pushState({ guard: true }, "");
   }
 
   function handlePopState() {
+    var modalWasOpen = typeof Modals !== "undefined" && Modals.isOpen && Modals.isOpen();
+    if (modalWasOpen) Modals.close();
     if (currentTab !== "inicio") navigate("inicio");
   }
 
@@ -103,7 +105,7 @@ var App = (function () {
     currentTab = "inicio";
     renderNav();
     renderCurrentView();
-    if (typeof history !== "undefined" && history.replaceState) history.replaceState({ tab: "inicio" }, "");
+    if (typeof history !== "undefined" && history.replaceState) history.replaceState({}, "");
 
     if (Storage.sync.isConfigured()) {
       var code = session().code;
@@ -155,7 +157,7 @@ var App = (function () {
 
   window.addEventListener("popstate", handlePopState);
 
-  return { session: session, navigate: navigate, refresh: refresh, boot: boot, showSetup: showSetup, init: init };
+  return { session: session, navigate: navigate, refresh: refresh, boot: boot, showSetup: showSetup, init: init, syncBackGuard: syncBackGuard };
 })();
 
 document.addEventListener("DOMContentLoaded", App.init);

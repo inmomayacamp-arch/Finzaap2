@@ -41,7 +41,16 @@ var Modals = (function () {
     // permite cerrar con ESC
     document.addEventListener("keydown", escHandler);
 
+    // asegura que el boton atras (fisico o del navegador) cierre este
+    // modal en vez de salir de la app
+    if (typeof App !== "undefined" && App.syncBackGuard) App.syncBackGuard();
+
     return backdrop;
+  }
+
+  function isOpen() {
+    var node = el();
+    return !!(node && node.firstChild);
   }
 
   function escHandler(e) {
@@ -74,5 +83,5 @@ var Modals = (function () {
     );
   }
 
-  return { open: open, close: close, headerHTML: headerHTML };
+  return { open: open, close: close, isOpen: isOpen, headerHTML: headerHTML };
 })();
