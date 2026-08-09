@@ -119,7 +119,7 @@ var SavingsView = (function () {
         var id = row.getAttribute("data-deposit-id");
         var dep = Storage.savingsDeposits.list(code()).find(function (d) { return d.id === id; });
         var cat = Storage.savingsCategories.list(code()).find(function (c) { return c.id === (dep && dep.categoryId); });
-        if (dep && cat) openEditDepositModal(dep, cat);
+        if (dep && cat) openDepositDetailModal(dep, cat);
       });
     });
 
@@ -445,6 +445,46 @@ var SavingsView = (function () {
           });
           Modals.close();
           App.refresh();
+        });
+      }
+    });
+  }
+
+  function openDepositDetailModal(dep, cat) {
+    var isWithdraw = dep.amount < 0;
+
+    var rows = [
+      { label: "Meta", value: cat.icon + " " + Utils.escapeHtml(cat.name) },
+      { label: "Fecha", value: dep.date },
+      { label: "Método", value: dep.method === "tarjeta" ? "Tarjeta" : "Efectivo" }
+    ];
+    if (dep.note) rows.push({ label: "Nota", value: Utils.escapeHtml(dep.note) });
+    if (dep.author) rows.push({ label: "Registró", value: '<span style="color:' + dep.authorColor + ';font-weight:700">' + Utils.escapeHtml(dep.author) + '</span>' });
+
+    var tags = dep.edited ? '<span class="tag tag-edited">Modificado</span>' : "";
+
+    var html =
+      Modals.headerHTML({
+        icon: "piggy", theme: "savings",
+        title: isWithdraw ? "Uso de ahorro" : "Ahorro",
+        sub: "Detalle del movimiento"
+      }) +
+      '<div class="detail-amount ' + (isWithdraw ? "negative" : "positive") + '">' + (isWithdraw ? "-" : "+") + Utils.formatMoney(Math.abs(dep.amount)) + '</div>' +
+      (tags ? '<div class="detail-tags" style="justify-content:flex-start;margin-bottom:16px">' + tags + '</div>' : "") +
+      '<div class="detail-list">' +
+        rows.map(function (r) { return '<div class="detail-row"><span class="dr-label">' + r.label + '</span><span class="dr-value">' + r.value + '</span></div>'; }).join("") +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="btn btn-secondary-outline" data-modal-close>Cerrar</button>' +
+        '<button class="btn ' + (isWithdraw ? "btn-danger-solid" : "btn-success") + '" id="btn-edit-dep">Editar</button>' +
+      '</div>';
+
+    Modals.open({
+      html: html,
+      onMount: function (sheet) {
+        sheet.querySelector("#btn-edit-dep").addEventListener("click", function () {
+          Modals.close();
+          openEditDepositModal(dep, cat);
         });
       }
     });

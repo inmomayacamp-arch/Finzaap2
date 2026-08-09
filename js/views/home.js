@@ -226,8 +226,56 @@ var HomeView = (function () {
       row.addEventListener("click", function (e) {
         if (e.target.closest("[data-remove-tx]")) return;
         var tx = Storage.transactions.list(code()).find(function (t) { return t.id === row.getAttribute("data-tx-id"); });
-        if (tx) openTransactionModal(tx.type, tx);
+        if (tx) openTransactionDetailModal(tx);
       });
+    });
+  }
+
+  // ---------------- Modal: detalle de movimiento ----------------
+
+  function openTransactionDetailModal(tx) {
+    var isIncome = tx.type === "ingreso";
+    var theme = isIncome ? "income" : "expense";
+    var sign = isIncome ? "+" : "-";
+
+    var rows = [
+      { label: "Concepto", value: Utils.escapeHtml(tx.description || "Sin descripción") },
+      { label: "Categoría", value: Utils.escapeHtml(tx.category || "General") },
+      { label: "Fecha", value: tx.date },
+      { label: "Método", value: tx.method === "tarjeta" ? "Tarjeta" : "Efectivo" }
+    ];
+    if (tx.note) rows.push({ label: "Nota", value: Utils.escapeHtml(tx.note) });
+    if (tx.author) rows.push({ label: "Registró", value: '<span style="color:' + tx.authorColor + ';font-weight:700">' + Utils.escapeHtml(tx.author) + '</span>' });
+
+    var tags = "";
+    if (tx.recurrent) tags += '<span class="tag tag-recurrent">Recurrente</span>';
+    if (tx.edited) tags += '<span class="tag tag-edited">Modificado</span>';
+
+    var html =
+      Modals.headerHTML({
+        icon: isIncome ? "arrowUpRight" : "arrowDownRight",
+        theme: theme,
+        title: isIncome ? "Ingreso" : "Egreso",
+        sub: "Detalle del movimiento"
+      }) +
+      '<div class="detail-amount ' + (isIncome ? "positive" : "negative") + '">' + sign + Utils.formatMoney(tx.amount) + '</div>' +
+      (tags ? '<div class="detail-tags" style="justify-content:flex-start;margin-bottom:16px">' + tags + '</div>' : "") +
+      '<div class="detail-list">' +
+        rows.map(function (r) { return '<div class="detail-row"><span class="dr-label">' + r.label + '</span><span class="dr-value">' + r.value + '</span></div>'; }).join("") +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="btn btn-secondary-outline" data-modal-close>Cerrar</button>' +
+        '<button class="btn ' + (isIncome ? "btn-success" : "btn-danger-solid") + '" id="btn-edit-tx">Editar</button>' +
+      '</div>';
+
+    Modals.open({
+      html: html,
+      onMount: function (sheet) {
+        sheet.querySelector("#btn-edit-tx").addEventListener("click", function () {
+          Modals.close();
+          openTransactionModal(tx.type, tx);
+        });
+      }
     });
   }
 
@@ -403,6 +451,7 @@ var HomeView = (function () {
   return {
     render: render,
     openTransactionModal: openTransactionModal,
+    openTransactionDetailModal: openTransactionDetailModal,
     txRowHTML: txRowHTML,
     emptyStateHTML: emptyStateHTML,
     recurringPickerHTML: recurringPickerHTML

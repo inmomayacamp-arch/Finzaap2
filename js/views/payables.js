@@ -144,7 +144,7 @@ var PayablesView = (function () {
       row.addEventListener("click", function (e) {
         if (e.target.closest("[data-mark-paid]") || e.target.closest("[data-remove]")) return;
         var item = Storage.payables.list(code()).find(function (p) { return p.id === row.getAttribute("data-item-id"); });
-        if (item) openAddModal(item);
+        if (item) openDetailModal(item);
       });
     });
     container.querySelectorAll("[data-use-template]").forEach(function (btn) {
@@ -165,6 +165,42 @@ var PayablesView = (function () {
         Storage.recurringPayables.remove(code(), btn.getAttribute("data-remove-template"));
         App.refresh();
       });
+    });
+  }
+
+  function openDetailModal(item) {
+    var rows = [
+      { label: "Concepto", value: Utils.escapeHtml(item.description || "Sin descripción") },
+      { label: "Vence", value: item.date + " · " + Utils.humanDueLabel(item.date) }
+    ];
+    if (item.reminder) rows.push({ label: "Recordatorio", value: item.reminder });
+    if (item.note) rows.push({ label: "Nota", value: Utils.escapeHtml(item.note) });
+    if (item.author) rows.push({ label: "Registró", value: '<span style="color:' + item.authorColor + ';font-weight:700">' + Utils.escapeHtml(item.author) + '</span>' });
+
+    var tags = "";
+    if (item.recurrent) tags += '<span class="tag tag-recurrent">Recurrente</span>';
+    if (item.edited) tags += '<span class="tag tag-edited">Modificado</span>';
+
+    var html =
+      Modals.headerHTML({ icon: "up", theme: "pay", title: "Por pagar", sub: "Detalle del pago" }) +
+      '<div class="detail-amount negative">-' + Utils.formatMoney(item.amount) + '</div>' +
+      (tags ? '<div class="detail-tags" style="justify-content:flex-start;margin-bottom:16px">' + tags + '</div>' : "") +
+      '<div class="detail-list">' +
+        rows.map(function (r) { return '<div class="detail-row"><span class="dr-label">' + r.label + '</span><span class="dr-value">' + r.value + '</span></div>'; }).join("") +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="btn btn-secondary-outline" data-modal-close>Cerrar</button>' +
+        '<button class="btn btn-indigo" id="btn-edit-item">Editar</button>' +
+      '</div>';
+
+    Modals.open({
+      html: html,
+      onMount: function (sheet) {
+        sheet.querySelector("#btn-edit-item").addEventListener("click", function () {
+          Modals.close();
+          openAddModal(item);
+        });
+      }
     });
   }
 

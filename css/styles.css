@@ -1118,6 +1118,55 @@ input{ font-family:inherit; }
 }
 .amount-field input::placeholder{ color:var(--text-muted); }
 
+.detail-amount{
+  font-family:var(--font-mono);
+  font-size:34px;
+  font-weight:700;
+  text-align:center;
+  margin:2px 0 20px;
+}
+.detail-amount.positive{ color:var(--green-500); }
+.detail-amount.negative{ color:var(--red-500); }
+.detail-amount.neutral{ color:var(--amber-500); }
+
+.detail-list{ margin-bottom:20px; }
+.detail-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  padding:11px 0;
+  border-bottom:1px solid var(--border);
+}
+.detail-row:last-child{ border-bottom:none; }
+.detail-row .dr-label{
+  font-size:11px;
+  font-weight:600;
+  color:var(--text-muted);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  flex-shrink:0;
+  padding-top:2px;
+}
+.detail-row .dr-value{
+  font-size:14px;
+  font-weight:500;
+  color:var(--text);
+  text-align:right;
+  overflow-wrap:anywhere;
+  min-width:0;
+}
+.detail-tags{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+
+.detail-actions{ display:flex; gap:10px; }
+.detail-actions .btn{ flex:1; margin-top:0; }
+.detail-actions .btn-secondary-outline{
+  background:none;
+  border:1.5px solid var(--border);
+  color:var(--text);
+}
+.detail-actions .btn-secondary-outline:hover{ background:var(--hover-tint); }
+
 .plain-input-underline{
   border:none;
   border-bottom:1.5px solid var(--border);

@@ -207,7 +207,7 @@ var ReportView = (function () {
       row.addEventListener("click", function (e) {
         if (e.target.closest("[data-remove-tx]")) return;
         var tx = Storage.transactions.list(code()).find(function (t) { return t.id === row.getAttribute("data-tx-id"); });
-        if (tx) HomeView.openTransactionModal(tx.type, tx);
+        if (tx) HomeView.openTransactionDetailModal(tx);
       });
     });
 
