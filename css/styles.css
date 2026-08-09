@@ -1359,13 +1359,21 @@ input{ font-family:inherit; }
    PRINT / PDF
    ========================================================= */
 
-/* Fuera de la vista normal (no display:none): asi sigue "pintado" y se
-   puede capturar para generar el PDF descargable, sin que nadie lo vea
-   en pantalla. Al imprimir (@media print) se reposiciona a la vista. */
-.print-only{
+/* #print-report se queda en el flujo normal del documento (no
+   position:fixed fuera de pantalla): eso es necesario para que
+   html2canvas pueda medir su alto real al generar el PDF — un elemento
+   fixed con left:-9999px se captura con alto 0 (pagina en blanco) en
+   varios navegadores. En vez de moverlo, lo recorta un contenedor
+   ancestro de tamaño 0, así nadie lo ve en pantalla pero su layout
+   interno se calcula con normalidad. Al imprimir (@media print) el
+   recorte se quita para que se vea en la hoja. */
+.print-clip{
   position:fixed;
-  left:-9999px;
-  top:0;
+  top:0; left:0;
+  width:0; height:0;
+  overflow:hidden;
+}
+#print-report{
   width:800px;
   background:#fff;
   padding:20px;
@@ -1384,6 +1392,12 @@ input{ font-family:inherit; }
 @media print{
   body *{ visibility:hidden; }
   #print-report, #print-report *{ visibility:visible; }
+  .print-clip{
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:auto;
+    overflow:visible;
+  }
   #print-report{
     position:absolute;
     left:0; top:0; width:100%;
