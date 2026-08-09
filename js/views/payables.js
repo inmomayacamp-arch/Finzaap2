@@ -146,7 +146,7 @@ var PayablesView = (function () {
         var session = App.session();
         Storage.payables.add(code(), {
           id: Utils.uid(), description: tpl.description, amount: tpl.amount, note: tpl.note || "",
-          date: Utils.todayISO(), reminder: "", status: "pending", recurrent: true,
+          date: Utils.todayISO(), reminder: null, status: "pending", recurrent: true,
           author: session.name, authorColor: session.color, createdAt: Date.now()
         });
         App.refresh();
@@ -239,7 +239,7 @@ var PayablesView = (function () {
           var description = sheet.querySelector("#f-description").value.trim() || "Por pagar";
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
-          var reminder = sheet.querySelector("#f-reminder").value;
+          var reminder = sheet.querySelector("#f-reminder").value || null;
 
           if (isEdit) {
             Storage.payables.update(code(), existing.id, { amount: amount, description: description, note: note, date: date, reminder: reminder, edited: true });
