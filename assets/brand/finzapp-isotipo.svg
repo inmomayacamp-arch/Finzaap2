@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 35" width="60" height="35" role="img" aria-label="FinzApp">
+  <title>FinzApp</title>
+  <g transform="translate(0.0 0.0)">
+    <mask id="fz-v" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+      <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+      <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+    </mask>
+    <circle cx="17.5" cy="17.5" r="17.5" fill="#6A40E8" mask="url(#fz-v)"/>
+    <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="#6A40E8" stroke-width="5.0"/>
+  </g>
+</svg>

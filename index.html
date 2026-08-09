@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#6C5CE7">
 <title>Finanza — Control de gastos compartido</title>
 <meta name="description" content="Registra ingresos, egresos, cobros, pagos y metas de ahorro, y compártelo con tu pareja.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+<link rel="icon" href="/icons/favicon.ico" sizes="32x32">
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
 
 <!-- PWA: instalable en el celular como app, no como acceso directo -->
 <link rel="manifest" href="/manifest.json">
@@ -32,7 +33,14 @@
       <!-- Iniciar sesión -->
       <div class="setup-step" id="step-login" data-step="login">
         <div class="setup-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 60 35" width="30" height="18" role="img" aria-label="FinzApp">
+            <mask id="fz-w-login" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+              <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+              <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+            </mask>
+            <circle cx="17.5" cy="17.5" r="17.5" fill="#FFFFFF" mask="url(#fz-w-login)"/>
+            <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="#FFFFFF" stroke-width="5.0"/>
+          </svg>
         </div>
         <h1>Iniciar sesión</h1>
         <p class="setup-sub">Entra con tu correo y contraseña</p>
@@ -50,7 +58,14 @@
       <!-- Crear cuenta -->
       <div class="setup-step" id="step-signup" data-step="signup" hidden>
         <div class="setup-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 60 35" width="30" height="18" role="img" aria-label="FinzApp">
+            <mask id="fz-w-signup" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+              <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+              <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+            </mask>
+            <circle cx="17.5" cy="17.5" r="17.5" fill="#FFFFFF" mask="url(#fz-w-signup)"/>
+            <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="#FFFFFF" stroke-width="5.0"/>
+          </svg>
         </div>
         <h1>Crear cuenta</h1>
         <p class="setup-sub">Tu nombre aparecerá en cada registro que hagas</p>
@@ -65,7 +80,14 @@
       <!-- Revisa tu correo (confirmación pendiente) -->
       <div class="setup-step" id="step-check-email" data-step="check-email" hidden>
         <div class="setup-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 60 35" width="30" height="18" role="img" aria-label="FinzApp">
+            <mask id="fz-w-checkemail" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+              <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+              <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+            </mask>
+            <circle cx="17.5" cy="17.5" r="17.5" fill="#FFFFFF" mask="url(#fz-w-checkemail)"/>
+            <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="#FFFFFF" stroke-width="5.0"/>
+          </svg>
         </div>
         <h1>Revisa tu correo</h1>
         <p class="setup-sub">Te enviamos un enlace de confirmación a <span id="check-email-address" style="font-weight:600;color:var(--text)"></span>. Ábrelo para activar tu cuenta y luego inicia sesión.</p>
@@ -75,7 +97,14 @@
       <!-- Olvidé mi contraseña -->
       <div class="setup-step" id="step-forgot" data-step="forgot" hidden>
         <div class="setup-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 60 35" width="30" height="18" role="img" aria-label="FinzApp">
+            <mask id="fz-w-forgot" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+              <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+              <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+            </mask>
+            <circle cx="17.5" cy="17.5" r="17.5" fill="#FFFFFF" mask="url(#fz-w-forgot)"/>
+            <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="#FFFFFF" stroke-width="5.0"/>
+          </svg>
         </div>
         <h1>Recuperar contraseña</h1>
         <p class="setup-sub">Te enviamos un enlace para crear una nueva contraseña</p>
@@ -89,7 +118,14 @@
       <!-- Nueva contraseña (al volver del enlace del correo) -->
       <div class="setup-step" id="step-reset" data-step="reset" hidden>
         <div class="setup-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M16 14c2.67 0 8 1.34 8 4v2H0v-2c0-2.66 5.33-4 8-4 .32 0 .69.02 1.08.05M8 12A5 5 0 1 0 8 2a5 5 0 0 0 0 10Zm8-2a4 4 0 1 0-1.2-7.82" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 60 35" width="30" height="18" role="img" aria-label="FinzApp">
+            <mask id="fz-w-reset" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+              <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+              <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+            </mask>
+            <circle cx="17.5" cy="17.5" r="17.5" fill="#FFFFFF" mask="url(#fz-w-reset)"/>
+            <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="#FFFFFF" stroke-width="5.0"/>
+          </svg>
         </div>
         <h1>Crea tu nueva contraseña</h1>
         <p class="setup-sub">Escribe la contraseña que vas a usar de ahora en adelante</p>
@@ -107,7 +143,16 @@
     <!-- Sidebar de escritorio -->
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="brand-icon">💰</div>
+        <div class="brand-icon">
+          <svg viewBox="0 0 60 35" width="22" height="13" role="img" aria-label="Finanza">
+            <mask id="fz-c-sidebar" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+              <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+              <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+            </mask>
+            <circle cx="17.5" cy="17.5" r="17.5" fill="currentColor" mask="url(#fz-c-sidebar)"/>
+            <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="currentColor" stroke-width="5.0"/>
+          </svg>
+        </div>
         <span>Finanza</span>
       </div>
       <nav class="sidebar-nav" id="sidebar-nav"></nav>
@@ -118,6 +163,19 @@
     </aside>
 
     <div class="main-col">
+      <header class="mobile-topbar">
+        <div class="brand-icon">
+          <svg viewBox="0 0 60 35" width="20" height="12" role="img" aria-label="Finanza">
+            <mask id="fz-c-mobile" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+              <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+              <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+            </mask>
+            <circle cx="17.5" cy="17.5" r="17.5" fill="currentColor" mask="url(#fz-c-mobile)"/>
+            <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="currentColor" stroke-width="5.0"/>
+          </svg>
+        </div>
+        <span>Finanza</span>
+      </header>
       <main id="main-content" class="main-content"></main>
       <nav class="bottom-nav" id="bottom-nav"></nav>
     </div>

@@ -30,7 +30,11 @@ var SHELL_FILES = [
   "/js/views/savings.js",
   "/js/views/account.js",
   "/icons/icon-192.png",
-  "/icons/icon-512.png"
+  "/icons/icon-512.png",
+  "/icons/icon-maskable-512.png",
+  "/icons/apple-touch-icon.png",
+  "/icons/favicon.svg",
+  "/icons/favicon.ico"
 ];
 
 self.addEventListener("install", function (event) {
