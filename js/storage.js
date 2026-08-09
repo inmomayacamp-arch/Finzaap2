@@ -211,11 +211,26 @@ var Storage = (function () {
       var c = client();
       if (!c) return Promise.resolve(false);
       setStatus("busy");
+      var startedAt = Date.now();
       var jobs = ENTITIES.map(function (entity) {
         return c.from(tableFor(entity)).select("*").eq("account_code", code)
           .then(function (res) {
             if (res.error) throw res.error;
-            var items = res.data.map(fromRow);
+            var remoteItems = res.data.map(fromRow);
+            var remoteIds = {};
+            remoteItems.forEach(function (it) { remoteIds[it.id] = true; });
+
+            // Protege lo que se creo localmente DESPUES de arrancar este
+            // pullAll: el SELECT pudo haber salido antes de que ese
+            // insert terminara de llegar al servidor, y sin esto el
+            // pullAll (que corre una vez al abrir la app) lo borraba
+            // aunque el usuario lo acabara de crear (ej. una meta de
+            // ahorro con saldo, justo al entrar).
+            var stillPending = readList(code, entity).filter(function (it) {
+              return !remoteIds[it.id] && (it.createdAt || 0) >= startedAt;
+            });
+
+            var items = stillPending.concat(remoteItems);
             items.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
             writeList(code, entity, items);
           });
