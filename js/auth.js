@@ -121,6 +121,14 @@ var Auth = (function () {
       });
   }
 
+  // Devuelve el resto de perfiles que comparten el mismo household_code
+  // (para mostrar con quién estás sincronizado: nombre + iniciales).
+  function listHouseholdMembers(householdCode) {
+    var c = client();
+    return c.from("profiles").select("id,name").eq("household_code", householdCode)
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  }
+
   return {
     signUp: signUp,
     signIn: signIn,
@@ -130,6 +138,7 @@ var Auth = (function () {
     sendPasswordReset: sendPasswordReset,
     updatePassword: updatePassword,
     onAuthEvent: onAuthEvent,
-    joinByCode: joinByCode
+    joinByCode: joinByCode,
+    listHouseholdMembers: listHouseholdMembers
   };
 })();

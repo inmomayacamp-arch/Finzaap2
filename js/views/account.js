@@ -6,8 +6,26 @@ var AccountView = (function () {
 
   function code() { return App.session().code; }
 
+  var emailBackfillAttempted = false;
+
   function render(container) {
     var session = App.session();
+
+    // Sesiones que iniciaron antes de guardar el correo no lo tienen: se
+    // completa una sola vez consultando la sesión de Supabase actual.
+    if (!session.email && !emailBackfillAttempted && Storage.sync.isConfigured()) {
+      emailBackfillAttempted = true;
+      Storage.sync.client().auth.getUser().then(function (res) {
+        var email = res.data && res.data.user ? res.data.user.email : null;
+        if (email) {
+          Storage.setSession(Object.assign({}, App.session(), { email: email }));
+          App.refresh();
+        }
+      }).catch(function () {});
+    }
+
+    App.ensureHouseholdMembersLoaded(session);
+    var others = App.householdMembers(session);
     var txs = Storage.transactions.list(code());
     var now = new Date();
     var key = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
@@ -70,9 +88,14 @@ var AccountView = (function () {
           Icons.get(status === "ok" ? "wifi" : "wifiOff", 14) + " " +
           syncStatusLabel(status) +
         '</div>' +
-        (session.inviteCode && session.code !== session.inviteCode
-          ? '<div class="sync-status-text ok" style="margin-top:4px">' + Icons.get("check", 14) + ' Conectado con otra cuenta (código ' + session.code + ')</div>'
-          : '') +
+        (others.length
+          ? '<div class="sync-status-text ok" style="margin-top:8px;display:flex;align-items:center;gap:8px">' +
+              '<div class="avatar-stack">' + others.map(function (m) { return '<span class="avatar avatar-sm" style="background:' + Utils.colorForAuthor(m.name) + '">' + Utils.initials(m.name) + '</span>'; }).join("") + '</div>' +
+              '<span>Sincronizado con ' + others.map(function (m) { return Utils.escapeHtml(m.name); }).join(", ") + '</span>' +
+            '</div>'
+          : (session.inviteCode && session.code !== session.inviteCode
+              ? '<div class="sync-status-text ok" style="margin-top:4px">' + Icons.get("check", 14) + ' Conectado con otra cuenta (código ' + session.code + ')</div>'
+              : '')) +
       '</div>' +
 
       '<div class="card">' +

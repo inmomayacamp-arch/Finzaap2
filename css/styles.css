@@ -612,6 +612,8 @@ input{ font-family:inherit; }
   flex-shrink:0;
   text-align:right;
 }
+.tx-amount.positive{ color:var(--green-500); }
+.tx-amount.negative{ color:var(--red-500); }
 .tx-actions{
   display:flex;
   align-items:center;
@@ -1010,6 +1012,16 @@ input{ font-family:inherit; }
   background:rgba(255,255,255,0.22);
   font-size:17px;
 }
+
+.avatar-sm{
+  width:24px;height:24px;
+  border-radius:8px;
+  font-size:10px;
+  font-weight:600;
+}
+.avatar-stack{ display:flex; align-items:center; }
+.avatar-stack .avatar-sm{ border:2px solid var(--surface); }
+.avatar-stack .avatar-sm + .avatar-sm{ margin-left:-8px; }
 .profile-hero-name{ font-weight:500; font-size:16px; }
 .profile-hero-sub{ font-size:12px; font-weight:400; opacity:0.85; }
 .profile-stats{ display:flex; gap:10px; }

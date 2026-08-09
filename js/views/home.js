@@ -38,6 +38,9 @@ var HomeView = (function () {
     var txs = Storage.transactions.list(acc);
     var wallet = computeWallet(txs);
     var now = new Date();
+    var session = App.session();
+    App.ensureHouseholdMembersLoaded(session);
+    var others = App.householdMembers(session);
     var thisMonth = computeMonthSummary(txs, now.getFullYear(), now.getMonth());
     var prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     var prevMonth = computeMonthSummary(txs, prevDate.getFullYear(), prevDate.getMonth());
@@ -54,7 +57,8 @@ var HomeView = (function () {
         '</div>' +
         '<div class="home-topbar">' +
           syncBadgeHTML() +
-          '<button class="avatar" id="home-avatar-btn" style="background:' + App.session().color + '" title="Ir a Cuenta">' + Utils.initials(App.session().name) + '</button>' +
+          (others.length ? '<div class="avatar-stack">' + others.map(otherAvatarHTML).join("") + '</div>' : '') +
+          '<button class="avatar" id="home-avatar-btn" style="background:' + session.color + '" title="Ir a Cuenta">' + Utils.initials(session.name) + '</button>' +
         '</div>' +
       '</div>' +
 
@@ -149,6 +153,10 @@ var HomeView = (function () {
     var cls = status === "ok" ? "ok" : status === "busy" ? "busy" : "err";
     var icon = status === "ok" ? "wifi" : status === "busy" ? "sync" : "wifiOff";
     return '<span class="sync-dot ' + cls + '" title="Sincronización">' + Icons.get(icon, 18) + '</span>';
+  }
+
+  function otherAvatarHTML(m) {
+    return '<span class="avatar avatar-sm" style="background:' + Utils.colorForAuthor(m.name) + '" title="Sincronizado con ' + Utils.escapeHtml(m.name) + '">' + Utils.initials(m.name) + '</span>';
   }
 
   function txRowHTML(t) {

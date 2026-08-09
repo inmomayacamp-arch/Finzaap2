@@ -28,6 +28,25 @@ var App = (function () {
     return Storage.getSession();
   }
 
+  // Cache compartido de "con quién más comparto este espacio" (nombre +
+  // iniciales), para no re-consultar Supabase en cada render. Se llena
+  // una vez por household_code y se refresca la UI cuando llega.
+  var membersCache = {};
+
+  function householdMembers(s) {
+    var list = membersCache[s.code];
+    return (list || []).filter(function (m) { return m.id !== s.userId; });
+  }
+
+  function ensureHouseholdMembersLoaded(s) {
+    if (membersCache[s.code] || typeof Auth === "undefined" || !Storage.sync.isConfigured()) return;
+    membersCache[s.code] = [];
+    Auth.listHouseholdMembers(s.code).then(function (members) {
+      membersCache[s.code] = members;
+      refresh();
+    }).catch(function () {});
+  }
+
   function navItemHTML(tab) {
     return (
       '<button class="nav-item' + (tab.id === currentTab ? " active" : "") + '" data-tab="' + tab.id + '">' +
@@ -169,7 +188,10 @@ var App = (function () {
 
   window.addEventListener("popstate", handlePopState);
 
-  return { session: session, navigate: navigate, refresh: refresh, boot: boot, showSetup: showSetup, init: init, syncBackGuard: syncBackGuard };
+  return {
+    session: session, navigate: navigate, refresh: refresh, boot: boot, showSetup: showSetup, init: init, syncBackGuard: syncBackGuard,
+    householdMembers: householdMembers, ensureHouseholdMembersLoaded: ensureHouseholdMembersLoaded
+  };
 })();
 
 document.addEventListener("DOMContentLoaded", App.init);
