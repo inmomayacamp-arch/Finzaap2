@@ -195,17 +195,8 @@ var ReportView = (function () {
     container.querySelector("#period-prev").addEventListener("click", function () { periodOffset--; App.refresh(); });
     container.querySelector("#period-next").addEventListener("click", function () { periodOffset++; App.refresh(); });
 
-    container.querySelectorAll("[data-remove-tx]").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        Storage.transactions.remove(code(), btn.getAttribute("data-remove-tx"));
-        App.refresh();
-      });
-    });
-
     container.querySelectorAll(".tx-row[data-tx-id]").forEach(function (row) {
-      row.addEventListener("click", function (e) {
-        if (e.target.closest("[data-remove-tx]")) return;
+      row.addEventListener("click", function () {
         var tx = Storage.transactions.list(code()).find(function (t) { return t.id === row.getAttribute("data-tx-id"); });
         if (tx) HomeView.openTransactionDetailModal(tx);
       });

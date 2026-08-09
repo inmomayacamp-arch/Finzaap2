@@ -93,7 +93,6 @@ var SavingsView = (function () {
                 '<div class="dep-date">' + d.date + ' · ' + (d.method === "tarjeta" ? "Tarjeta" : "Efectivo") + (d.note ? " · " + Utils.escapeHtml(d.note) : "") + '</div>' +
                 (d.edited ? '<span class="tag tag-edited">Modificado</span>' : "") +
                 '<div class="dep-amount' + (isWithdraw ? " withdraw" : "") + '">' + (isWithdraw ? "" : "+") + Utils.formatMoney(d.amount) + '</div>' +
-                '<button class="icon-btn danger" data-remove-deposit="' + d.id + '" title="Eliminar depósito">' + Icons.get("close", 12) + '</button>' +
               '</div>';
             }).join("")
           : '<div class="empty-state" style="padding:10px 0">Aún sin depósitos</div>') +
@@ -107,14 +106,13 @@ var SavingsView = (function () {
 
     container.querySelectorAll(".goal-card").forEach(function (card) {
       card.addEventListener("click", function (e) {
-        if (e.target.closest("[data-remove-category]") || e.target.closest("[data-remove-deposit]") || e.target.closest(".deposit-row")) return;
+        if (e.target.closest("[data-remove-category]") || e.target.closest(".deposit-row")) return;
         openAdjustModal(card.getAttribute("data-category-id"));
       });
     });
 
     container.querySelectorAll(".deposit-row[data-deposit-id]").forEach(function (row) {
       row.addEventListener("click", function (e) {
-        if (e.target.closest("[data-remove-deposit]")) return;
         e.stopPropagation();
         var id = row.getAttribute("data-deposit-id");
         var dep = Storage.savingsDeposits.list(code()).find(function (d) { return d.id === id; });
@@ -133,16 +131,6 @@ var SavingsView = (function () {
             Storage.savingsDeposits.remove(code(), d.id);
             if (d.linkedTxId) Storage.transactions.remove(code(), d.linkedTxId);
           });
-        App.refresh();
-      });
-    });
-    container.querySelectorAll("[data-remove-deposit]").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var id = btn.getAttribute("data-remove-deposit");
-        var dep = Storage.savingsDeposits.list(code()).find(function (d) { return d.id === id; });
-        Storage.savingsDeposits.remove(code(), id);
-        if (dep && dep.linkedTxId) Storage.transactions.remove(code(), dep.linkedTxId);
         App.refresh();
       });
     });
@@ -474,8 +462,9 @@ var SavingsView = (function () {
       '<div class="detail-list">' +
         rows.map(function (r) { return '<div class="detail-row"><span class="dr-label">' + r.label + '</span><span class="dr-value">' + r.value + '</span></div>'; }).join("") +
       '</div>' +
+      '<p class="field-error" id="f-error" hidden></p>' +
       '<div class="detail-actions">' +
-        '<button class="btn btn-secondary-outline" data-modal-close>Cerrar</button>' +
+        '<button class="btn btn-danger-outline" id="btn-delete-dep">Eliminar</button>' +
         '<button class="btn ' + (isWithdraw ? "btn-danger-solid" : "btn-success") + '" id="btn-edit-dep">Editar</button>' +
       '</div>';
 
@@ -485,6 +474,21 @@ var SavingsView = (function () {
         sheet.querySelector("#btn-edit-dep").addEventListener("click", function () {
           Modals.close();
           openEditDepositModal(dep, cat);
+        });
+        sheet.querySelector("#btn-delete-dep").addEventListener("click", function () {
+          var catTotal = Storage.savingsDeposits.list(code())
+            .filter(function (d) { return d.categoryId === cat.id; })
+            .reduce(function (s, d) { return s + d.amount; }, 0);
+          if (catTotal - dep.amount < -0.001) {
+            var errorEl = sheet.querySelector("#f-error");
+            errorEl.textContent = "No puedes eliminar este ahorro: ya usaste parte de él y la meta quedaría en negativo.";
+            errorEl.hidden = false;
+            return;
+          }
+          Storage.savingsDeposits.remove(code(), dep.id);
+          if (dep.linkedTxId) Storage.transactions.remove(code(), dep.linkedTxId);
+          Modals.close();
+          App.refresh();
         });
       }
     });
@@ -564,6 +568,12 @@ var SavingsView = (function () {
             var available = availableBalance(method) + (wasSameMethod ? Math.abs(dep.amount) : 0);
             if (amount > available) {
               errorEl.textContent = "No tienes suficiente saldo en " + (method === "tarjeta" ? "tarjeta" : "efectivo") + ". Disponible: " + Utils.formatMoney(available);
+              errorEl.hidden = false;
+              sheet.querySelector("#f-amount").focus();
+              return;
+            }
+            if (totalExcludingThis + amount < -0.001) {
+              errorEl.textContent = "No puedes bajar tanto este ahorro: ya usaste parte de él y la meta quedaría en negativo (mínimo " + Utils.formatMoney(-totalExcludingThis) + ").";
               errorEl.hidden = false;
               sheet.querySelector("#f-amount").focus();
               return;

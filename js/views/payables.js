@@ -92,7 +92,6 @@ var PayablesView = (function () {
         '<div class="tx-amount" style="color:var(--indigo-500)">-' + Utils.formatMoney(item.amount) + '</div>' +
         '<div class="tx-actions">' +
           '<button class="icon-btn confirm" data-mark-paid="' + item.id + '" title="Marcar como pagado">' + Icons.get("check", 14) + '</button>' +
-          '<button class="icon-btn danger" data-remove="' + item.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
         '</div>' +
       '</div>'
     );
@@ -133,16 +132,9 @@ var PayablesView = (function () {
         App.refresh();
       });
     });
-    container.querySelectorAll("[data-remove]").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        Storage.payables.remove(code(), btn.getAttribute("data-remove"));
-        App.refresh();
-      });
-    });
     container.querySelectorAll(".tx-row[data-item-id]").forEach(function (row) {
       row.addEventListener("click", function (e) {
-        if (e.target.closest("[data-mark-paid]") || e.target.closest("[data-remove]")) return;
+        if (e.target.closest("[data-mark-paid]")) return;
         var item = Storage.payables.list(code()).find(function (p) { return p.id === row.getAttribute("data-item-id"); });
         if (item) openDetailModal(item);
       });
@@ -189,7 +181,7 @@ var PayablesView = (function () {
         rows.map(function (r) { return '<div class="detail-row"><span class="dr-label">' + r.label + '</span><span class="dr-value">' + r.value + '</span></div>'; }).join("") +
       '</div>' +
       '<div class="detail-actions">' +
-        '<button class="btn btn-secondary-outline" data-modal-close>Cerrar</button>' +
+        '<button class="btn btn-danger-outline" id="btn-delete-item">Eliminar</button>' +
         '<button class="btn btn-indigo" id="btn-edit-item">Editar</button>' +
       '</div>';
 
@@ -199,6 +191,11 @@ var PayablesView = (function () {
         sheet.querySelector("#btn-edit-item").addEventListener("click", function () {
           Modals.close();
           openAddModal(item);
+        });
+        sheet.querySelector("#btn-delete-item").addEventListener("click", function () {
+          Storage.payables.remove(code(), item.id);
+          Modals.close();
+          App.refresh();
         });
       }
     });

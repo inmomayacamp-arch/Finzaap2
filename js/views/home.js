@@ -168,7 +168,6 @@ var HomeView = (function () {
           '</div>' +
         '</div>' +
         '<div class="tx-amount ' + amountClass + '">' + sign + Utils.formatMoney(t.amount) + '</div>' +
-        '<button class="icon-btn danger tx-delete" data-remove-tx="' + t.id + '" title="Eliminar">' + Icons.get("close", 13) + '</button>' +
       '</div>'
     );
   }
@@ -214,17 +213,8 @@ var HomeView = (function () {
     container.querySelector("#btn-add-expense").addEventListener("click", function () { openTransactionModal("egreso"); });
     container.querySelector("#home-avatar-btn").addEventListener("click", function () { App.navigate("cuenta"); });
 
-    container.querySelectorAll("[data-remove-tx]").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        Storage.transactions.remove(code(), btn.getAttribute("data-remove-tx"));
-        App.refresh();
-      });
-    });
-
     container.querySelectorAll(".tx-row[data-tx-id]").forEach(function (row) {
-      row.addEventListener("click", function (e) {
-        if (e.target.closest("[data-remove-tx]")) return;
+      row.addEventListener("click", function () {
         var tx = Storage.transactions.list(code()).find(function (t) { return t.id === row.getAttribute("data-tx-id"); });
         if (tx) openTransactionDetailModal(tx);
       });
@@ -264,7 +254,7 @@ var HomeView = (function () {
         rows.map(function (r) { return '<div class="detail-row"><span class="dr-label">' + r.label + '</span><span class="dr-value">' + r.value + '</span></div>'; }).join("") +
       '</div>' +
       '<div class="detail-actions">' +
-        '<button class="btn btn-secondary-outline" data-modal-close>Cerrar</button>' +
+        '<button class="btn btn-danger-outline" id="btn-delete-tx">Eliminar</button>' +
         '<button class="btn ' + (isIncome ? "btn-success" : "btn-danger-solid") + '" id="btn-edit-tx">Editar</button>' +
       '</div>';
 
@@ -274,6 +264,11 @@ var HomeView = (function () {
         sheet.querySelector("#btn-edit-tx").addEventListener("click", function () {
           Modals.close();
           openTransactionModal(tx.type, tx);
+        });
+        sheet.querySelector("#btn-delete-tx").addEventListener("click", function () {
+          Storage.transactions.remove(code(), tx.id);
+          Modals.close();
+          App.refresh();
         });
       }
     });
