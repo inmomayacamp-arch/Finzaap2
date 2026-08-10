@@ -172,7 +172,7 @@ var HomeView = (function () {
             (t.edited ? '<span class="tag tag-edited">Modificado</span>' : "") +
           '</div>' +
           '<div class="tx-meta">' + Utils.escapeHtml(t.category || "General") + ' · ' + t.date +
-            (t.author ? ' · <span style="color:' + t.authorColor + ';font-weight:700">' + Utils.escapeHtml(t.author) + '</span>' : "") +
+            (t.author ? ' · <span style="color:' + Utils.escapeHtml(t.authorColor) + ';font-weight:700">' + Utils.escapeHtml(t.author) + '</span>' : "") +
           '</div>' +
         '</div>' +
         '<div class="tx-amount ' + amountClass + '">' + sign + Utils.formatMoney(t.amount) + '</div>' +
@@ -243,7 +243,7 @@ var HomeView = (function () {
       { label: "Método", value: tx.method === "tarjeta" ? "Tarjeta" : "Efectivo" }
     ];
     if (tx.note) rows.push({ label: "Nota", value: Utils.escapeHtml(tx.note) });
-    if (tx.author) rows.push({ label: "Registró", value: '<span style="color:' + tx.authorColor + ';font-weight:700">' + Utils.escapeHtml(tx.author) + '</span>' });
+    if (tx.author) rows.push({ label: "Registró", value: '<span style="color:' + Utils.escapeHtml(tx.authorColor) + ';font-weight:700">' + Utils.escapeHtml(tx.author) + '</span>' });
 
     var tags = "";
     if (tx.recurrent) tags += '<span class="tag tag-recurrent">Recurrente</span>';

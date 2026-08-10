@@ -110,14 +110,23 @@ var Auth = (function () {
 
   // Une el perfil del usuario actual al espacio compartido de otra
   // persona a partir de SU código personal (invite_code).
+  //
+  // Pasa por la función join_household en la base de datos (en vez de
+  // leer profiles por invite_code y luego actualizar household_code
+  // desde el cliente) porque esas dos operaciones por separado se
+  // podían saltar: cualquiera podía leer el household_code de
+  // cualquier perfil y ponérselo al suyo directamente, sin conocer el
+  // invite_code real de nadie. La función corre en el servidor con
+  // permisos propios y es el único camino permitido para cambiar
+  // household_code (ver sql/security_hardening.sql).
   function joinByCode(userId, inviteCode) {
     var c = client();
-    return c.from("profiles").select("household_code, name").eq("invite_code", inviteCode).maybeSingle()
+    return c.rpc("join_household", { p_invite_code: inviteCode })
       .then(function (res) {
         if (res.error) throw new Error(friendlyError(res.error));
-        if (!res.data) throw new Error("No encontramos ese código.");
-        return c.from("profiles").update({ household_code: res.data.household_code }).eq("id", userId)
-          .then(function (res2) { if (res2.error) throw new Error(friendlyError(res2.error)); return res.data; });
+        var row = res.data && res.data[0];
+        if (!row) throw new Error("No encontramos ese código.");
+        return { household_code: row.household_code, name: row.name };
       });
   }
 

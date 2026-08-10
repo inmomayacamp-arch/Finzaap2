@@ -210,7 +210,7 @@ var ReceivablesView = (function () {
       { label: "Vence", value: item.date + " · " + Utils.humanDueLabel(item.date) }
     ];
     if (item.note) rows.push({ label: "Nota", value: Utils.escapeHtml(item.note) });
-    if (item.author) rows.push({ label: "Registró", value: '<span style="color:' + item.authorColor + ';font-weight:700">' + Utils.escapeHtml(item.author) + '</span>' });
+    if (item.author) rows.push({ label: "Registró", value: '<span style="color:' + Utils.escapeHtml(item.authorColor) + ';font-weight:700">' + Utils.escapeHtml(item.author) + '</span>' });
 
     var tags = "";
     if (item.recurrent) tags += '<span class="tag tag-recurrent">Recurrente</span>';

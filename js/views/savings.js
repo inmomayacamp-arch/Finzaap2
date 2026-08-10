@@ -74,7 +74,7 @@ var SavingsView = (function () {
     return (
       '<div class="card goal-card" data-category-id="' + cat.id + '">' +
         '<div class="goal-head">' +
-          '<div class="goal-emoji">' + cat.icon + '</div>' +
+          '<div class="goal-emoji">' + Utils.escapeHtml(cat.icon) + '</div>' +
           '<div>' +
             '<div class="goal-name">' + Utils.escapeHtml(cat.name) + '</div>' +
             (cat.goal > 0 ? '<div class="goal-meta">Meta: ' + Utils.formatMoney(cat.goal) + '</div>' : '<div class="goal-meta">Sin meta definida</div>') +
@@ -214,7 +214,7 @@ var SavingsView = (function () {
       '<div id="existing-slot"' + (hasCategories ? '' : ' hidden') + '>' +
         '<div class="field-group"><label class="field-label">Categoría</label>' +
           '<select id="f-category" class="input">' +
-            categories.map(function (c) { return '<option value="' + c.id + '"' + (c.id === preselectId ? " selected" : "") + '>' + c.icon + " " + Utils.escapeHtml(c.name) + '</option>'; }).join("") +
+            categories.map(function (c) { return '<option value="' + Utils.escapeHtml(c.id) + '"' + (c.id === preselectId ? " selected" : "") + '>' + Utils.escapeHtml(c.icon) + " " + Utils.escapeHtml(c.name) + '</option>'; }).join("") +
           '</select>' +
         '</div>' +
       '</div>' +
@@ -347,7 +347,7 @@ var SavingsView = (function () {
     var html =
       Modals.headerHTML({
         icon: "piggy", theme: "savings",
-        title: cat.icon + " " + Utils.escapeHtml(cat.name),
+        title: Utils.escapeHtml(cat.icon) + " " + Utils.escapeHtml(cat.name),
         sub: "Saldo actual: " + Utils.formatMoney(currentTotal)
       }) +
       '<div class="segmented" id="direction-toggle" style="margin-bottom:16px">' +
@@ -468,12 +468,12 @@ var SavingsView = (function () {
     var isWithdraw = dep.amount < 0;
 
     var rows = [
-      { label: "Meta", value: cat.icon + " " + Utils.escapeHtml(cat.name) },
+      { label: "Meta", value: Utils.escapeHtml(cat.icon) + " " + Utils.escapeHtml(cat.name) },
       { label: "Fecha", value: dep.date },
       { label: "Método", value: dep.method === "tarjeta" ? "Tarjeta" : "Efectivo" }
     ];
     if (dep.note) rows.push({ label: "Nota", value: Utils.escapeHtml(dep.note) });
-    if (dep.author) rows.push({ label: "Registró", value: '<span style="color:' + dep.authorColor + ';font-weight:700">' + Utils.escapeHtml(dep.author) + '</span>' });
+    if (dep.author) rows.push({ label: "Registró", value: '<span style="color:' + Utils.escapeHtml(dep.authorColor) + ';font-weight:700">' + Utils.escapeHtml(dep.author) + '</span>' });
 
     var tags = dep.edited ? '<span class="tag tag-edited">Modificado</span>' : "";
 
@@ -529,7 +529,7 @@ var SavingsView = (function () {
     var html =
       Modals.headerHTML({
         icon: "piggy", theme: "savings",
-        title: (isWithdraw ? "Editar uso: " : "Editar ahorro: ") + cat.icon + " " + Utils.escapeHtml(cat.name),
+        title: (isWithdraw ? "Editar uso: " : "Editar ahorro: ") + Utils.escapeHtml(cat.icon) + " " + Utils.escapeHtml(cat.name),
         sub: isWithdraw ? "Esto no afecta tu saldo disponible" : "Ajusta lo que sale de tu saldo disponible"
       }) +
       '<div class="field-group">' +
