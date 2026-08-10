@@ -60,7 +60,13 @@
     <div class="admin-stats-grid" id="admin-stats"></div>
 
     <div class="card admin-table-card">
-      <div class="card-label-sm">Cuentas</div>
+      <div class="admin-table-head">
+        <div class="card-label-sm">Cuentas</div>
+        <label class="admin-toggle-empty" id="admin-toggle-empty-wrap" hidden>
+          <input type="checkbox" id="admin-show-empty">
+          Mostrar cuentas vacías (<span id="admin-empty-count">0</span>)
+        </label>
+      </div>
       <div class="admin-table-wrap">
         <table class="admin-table">
           <thead>

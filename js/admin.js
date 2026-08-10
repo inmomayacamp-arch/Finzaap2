@@ -54,23 +54,33 @@ var AdminApp = (function () {
       " · " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
   }
 
-  function renderAccounts(rows) {
+  var allAccounts = [];
+
+  function accountRowHTML(r) {
+    var empty = Number(r.member_count) === 0;
+    return (
+      '<tr class="' + (empty ? "admin-row-empty" : "") + '">' +
+        '<td class="admin-code">' + Utils.escapeHtml(r.code) + (empty ? '<span class="admin-tag-empty">Vacía</span>' : "") + "</td>" +
+        "<td>" + Utils.escapeHtml(r.members) + ' <span class="admin-muted">(' + r.member_count + ")</span></td>" +
+        "<td>" + fmtDate(r.created_at) + "</td>" +
+        "<td>" + r.transaction_count + "</td>" +
+        "<td>" + fmtDate(r.last_activity) + "</td>" +
+      "</tr>"
+    );
+  }
+
+  function renderAccounts() {
+    var showEmpty = el("admin-show-empty").checked;
+    var visible = allAccounts.filter(function (r) { return showEmpty || Number(r.member_count) > 0; });
     var body = el("admin-accounts-body");
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="5" class="admin-empty">Sin cuentas todavía</td></tr>';
-      return;
-    }
-    body.innerHTML = rows.map(function (r) {
-      return (
-        "<tr>" +
-          '<td class="admin-code">' + Utils.escapeHtml(r.code) + "</td>" +
-          "<td>" + Utils.escapeHtml(r.members) + ' <span class="admin-muted">(' + r.member_count + ")</span></td>" +
-          "<td>" + fmtDate(r.created_at) + "</td>" +
-          "<td>" + r.transaction_count + "</td>" +
-          "<td>" + fmtDate(r.last_activity) + "</td>" +
-        "</tr>"
-      );
-    }).join("");
+
+    body.innerHTML = !visible.length
+      ? '<tr><td colspan="5" class="admin-empty">Sin cuentas todavía</td></tr>'
+      : visible.map(accountRowHTML).join("");
+
+    var emptyCount = allAccounts.length - allAccounts.filter(function (r) { return Number(r.member_count) > 0; }).length;
+    el("admin-empty-count").textContent = emptyCount;
+    el("admin-toggle-empty-wrap").hidden = emptyCount === 0;
   }
 
   function loadDashboard() {
@@ -82,7 +92,8 @@ var AdminApp = (function () {
       if (statsRes.error) throw statsRes.error;
       if (accountsRes.error) throw accountsRes.error;
       renderStats(statsRes.data && statsRes.data[0]);
-      renderAccounts(accountsRes.data || []);
+      allAccounts = accountsRes.data || [];
+      renderAccounts();
       showDashboard();
     }).catch(function (err) {
       showLogin("No tienes acceso al panel de administrador.");
@@ -123,9 +134,14 @@ var AdminApp = (function () {
     });
   }
 
+  function wireEmptyToggle() {
+    el("admin-show-empty").addEventListener("change", renderAccounts);
+  }
+
   function init() {
     wireLogin();
     wireLogout();
+    wireEmptyToggle();
     // si ya iniciaste sesión en la app principal en este navegador,
     // supabase-js reutiliza esa misma sesión aquí.
     client.auth.getSession().then(function (res) {
