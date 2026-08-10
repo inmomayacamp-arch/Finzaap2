@@ -14,6 +14,9 @@ var App = (function () {
   ];
 
   var currentTab = "inicio";
+  var booted = false; // true solo entre boot() y showSetup(): antes de eso
+  // (p.ej. en la pantalla de login) tab.view sigue siendo null porque
+  // wireViews() aun no corre, y refrescar la vista revienta.
 
   function wireViews() {
     TABS[0].view = HomeView;
@@ -125,11 +128,13 @@ var App = (function () {
   }
 
   function refresh() {
+    if (!booted) return;
     renderCurrentView();
   }
 
   function boot() {
     wireViews();
+    booted = true;
     document.getElementById("view-setup").hidden = true;
     document.getElementById("view-main").hidden = false;
     document.getElementById("sidebar-account-btn").addEventListener("click", function () { navigate("cuenta"); }, { once: true });
@@ -146,6 +151,7 @@ var App = (function () {
   }
 
   function showSetup() {
+    booted = false;
     Storage.sync.unsubscribe();
     Storage.clearSession();
     document.getElementById("view-main").hidden = true;
