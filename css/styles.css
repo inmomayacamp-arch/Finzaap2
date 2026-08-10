@@ -736,6 +736,12 @@ input{ font-family:inherit; }
 .total-month-card{
   margin-bottom:14px;
 }
+.total-month-card.with-action{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
 .total-month-card .card-label-sm{ margin-bottom:4px; }
 .total-month-card .total-value{
   font-family:var(--font-mono);

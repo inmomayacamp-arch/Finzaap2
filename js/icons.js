@@ -43,7 +43,8 @@ var Icons = (function () {
     share: '<circle cx="18" cy="5" r="2.6" ' + STROKE + '/><circle cx="6" cy="12" r="2.6" ' + STROKE + '/><circle cx="18" cy="19" r="2.6" ' + STROKE + '/><path d="M8.3 10.6 15.7 6.4M8.3 13.4l7.4 4.2" ' + STROKE + '/>',
     eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" ' + STROKE + '/><circle cx="12" cy="12" r="3.2" ' + STROKE + '/>',
     eyeOff: '<path d="M3.5 3.5l17 17M10.6 5.3A10.9 10.9 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.1M6.5 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7c1.4 0 2.6-.3 3.7-.8M9.5 9.7a3.2 3.2 0 0 0 4.5 4.5" ' + STROKE + '/>',
-    shield: '<path d="M12 3 5 6v5.5c0 4.5 3 7.2 7 8.5 4-1.3 7-4 7-8.5V6l-7-3Z" ' + STROKE + '/>'
+    shield: '<path d="M12 3 5 6v5.5c0 4.5 3 7.2 7 8.5 4-1.3 7-4 7-8.5V6l-7-3Z" ' + STROKE + '/>',
+    mail: '<rect x="2.5" y="5" width="19" height="14" rx="2.3" ' + STROKE + '/><path d="M3.5 6.5 12 13l8.5-6.5" ' + STROKE + '/>'
   };
 
   var cache = {};

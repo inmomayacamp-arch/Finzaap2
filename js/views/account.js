@@ -117,6 +117,12 @@ var AccountView = (function () {
         statRow("arrowUpRight", "Flujo esperado", Utils.formatMoney(expectedFlow)) +
       '</div>' +
 
+      '<div class="card">' +
+        '<div class="card-label-sm">' + Icons.get("mail", 12) + ' Soporte</div>' +
+        '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">¿Algo falló o tienes una duda? Escríbenos y te respondemos por correo.</p>' +
+        '<a class="btn btn-secondary" href="' + supportMailtoHref(session) + '" id="btn-contact-support" style="display:block;text-align:center;text-decoration:none">' + Icons.get("mail", 15) + ' Contactar soporte</a>' +
+      '</div>' +
+
       '<button class="btn btn-danger-solid" id="btn-logout" style="margin-top:6px">' + Icons.get("logout", 15) + ' Cerrar sesión</button>' +
       '<button class="btn btn-danger-outline" id="btn-delete-data" style="margin-top:10px">' + Icons.get("trash", 15) + ' Eliminar todos mis datos</button>';
 
@@ -148,6 +154,12 @@ var AccountView = (function () {
     }
 
     return "";
+  }
+
+  function supportMailtoHref(session) {
+    var subject = "Soporte FinzApp";
+    var body = "Cuenta: " + (session.email || session.name) + "\nCódigo: " + session.code + "\n\nDescribe aquí tu duda o el problema que tuviste:\n";
+    return "mailto:hola@finzapp.com.mx?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   }
 
   function syncStatusLabel(status) {

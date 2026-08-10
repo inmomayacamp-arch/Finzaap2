@@ -31,14 +31,16 @@ var PayablesView = (function () {
           '<div class="page-eyebrow">Compromisos</div>' +
           '<h1 class="page-title">Por Pagar</h1>' +
         '</div>' +
-        '<button class="btn btn-indigo btn-pill" id="btn-add-payable">' + Icons.get("plus", 15) + ' Agregar</button>' +
       '</div>' +
 
       '<div class="month-strip" id="month-strip">' + monthStripHTML(all) + '</div>' +
 
-      '<div class="card total-month-card">' +
-        '<div class="card-label-sm">Total del mes</div>' +
-        '<div class="total-value theme-indigo">-' + Utils.formatMoney(total) + '</div>' +
+      '<div class="card total-month-card with-action">' +
+        '<div>' +
+          '<div class="card-label-sm">Total del mes</div>' +
+          '<div class="total-value theme-indigo">-' + Utils.formatMoney(total) + '</div>' +
+        '</div>' +
+        '<button class="btn btn-indigo btn-pill" id="btn-add-payable">' + Icons.get("plus", 15) + ' Agregar</button>' +
       '</div>' +
 
       '<div class="card">' +
