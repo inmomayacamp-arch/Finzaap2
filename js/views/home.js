@@ -81,16 +81,16 @@ var HomeView = (function () {
             '<div class="balance-split" style="margin-top:10px">' +
               '<div class="balance-mini">' +
                 '<div class="mini-label">' + Icons.get("card", 13) + ' Tarjeta</div>' +
-                '<div class="mini-value card-account">' + Utils.formatMoneyAbs(wallet.card) + '</div>' +
+                '<div class="mini-value card-account' + (wallet.card < 0 ? " negative" : "") + '">' + Utils.formatMoney(wallet.card) + '</div>' +
               '</div>' +
               '<div class="balance-mini">' +
                 '<div class="mini-label">' + Icons.get("cash", 13) + ' Efectivo</div>' +
-                '<div class="mini-value cash-account">' + Utils.formatMoneyAbs(wallet.cash) + '</div>' +
+                '<div class="mini-value cash-account' + (wallet.cash < 0 ? " negative" : "") + '">' + Utils.formatMoney(wallet.cash) + '</div>' +
               '</div>' +
             '</div>' +
             '<div class="balance-total">' +
               '<span class="label">Total</span>' +
-              '<span class="value positive">' + Utils.formatMoneyAbs(wallet.total) + '</span>' +
+              '<span class="value ' + (wallet.total < 0 ? "negative" : "positive") + '">' + Utils.formatMoney(wallet.total) + '</span>' +
             '</div>' +
           '</div>' +
 
@@ -336,6 +336,7 @@ var HomeView = (function () {
             '<span><span class="cb-title">Guardar como recurrente</span><br><span class="cb-sub">Lo podrás reutilizar rápidamente</span></span>' +
           '</label>' +
         '</div>') +
+      '<div id="f-split-warning" class="split-warning" hidden></div>' +
       '<button class="btn ' + (isIncome ? "btn-success" : "btn-danger-solid") + ' modal-footer-btn" id="f-submit">' +
         (isEdit ? "Guardar cambios" : "Guardar " + (isIncome ? "Ingreso" : "Egreso")) +
       '</button>';
@@ -391,6 +392,56 @@ var HomeView = (function () {
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
           var session = App.session();
+          var warningEl = sheet.querySelector("#f-split-warning");
+
+          if (!isIncome) {
+            var otherTx = Storage.transactions.list(code());
+            if (isEdit) otherTx = otherTx.filter(function (t) { return t.id !== existing.id; });
+            var bal = computeWallet(otherTx);
+            var avail = method === "tarjeta" ? bal.card : bal.cash;
+            var availOther = method === "tarjeta" ? bal.cash : bal.card;
+            var otherMethod = method === "tarjeta" ? "efectivo" : "tarjeta";
+            var otherLabel = method === "tarjeta" ? "Efectivo" : "Tarjeta";
+            var methodLabel = method === "tarjeta" ? "Tarjeta" : "Efectivo";
+
+            if (amount > avail) {
+              var primaryPart = Math.max(avail, 0);
+              var remainder = amount - primaryPart;
+
+              if (isEdit || remainder > availOther) {
+                warningEl.hidden = false;
+                warningEl.className = "split-warning error";
+                warningEl.innerHTML = "<p>" + (isEdit
+                  ? "No tienes suficiente saldo en " + methodLabel + " (disponible " + Utils.formatMoney(avail) + "). Reduce el monto o cambia el método."
+                  : "No te alcanza ni dividiendo el pago: tienes " + Utils.formatMoney(bal.total) + " en total y este gasto es de " + Utils.formatMoney(amount) + ".") + "</p>";
+                return;
+              }
+
+              warningEl.hidden = false;
+              warningEl.className = "split-warning";
+              warningEl.innerHTML =
+                "<p>No tienes suficiente saldo en " + methodLabel + " (disponible " + Utils.formatMoney(avail) + ").</p>" +
+                '<button type="button" class="btn btn-secondary-outline btn-pill" id="f-split-confirm">Completar ' + Utils.formatMoney(remainder) + " con " + otherLabel + "</button>";
+              warningEl.querySelector("#f-split-confirm").addEventListener("click", function () {
+                var splitNote = (note ? note + " · " : "") + "Dividido: " + Utils.formatMoney(primaryPart) + " " + methodLabel + " + " + Utils.formatMoney(remainder) + " " + otherLabel;
+                Storage.transactions.add(code(), {
+                  id: Utils.uid(), type: type, amount: primaryPart, description: description, category: category,
+                  note: splitNote, date: date, method: method, recurrent: false,
+                  author: session.name, authorColor: session.color, createdAt: Date.now()
+                });
+                Storage.transactions.add(code(), {
+                  id: Utils.uid(), type: type, amount: remainder, description: description, category: category,
+                  note: splitNote, date: date, method: otherMethod, recurrent: false,
+                  author: session.name, authorColor: session.color, createdAt: Date.now() + 1
+                });
+                Modals.close();
+                App.refresh();
+              });
+              return;
+            }
+
+            warningEl.hidden = true;
+          }
 
           if (isEdit) {
             Storage.transactions.update(code(), existing.id, {

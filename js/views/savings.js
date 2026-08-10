@@ -351,8 +351,8 @@ var SavingsView = (function () {
         sub: "Saldo actual: " + Utils.formatMoney(currentTotal)
       }) +
       '<div class="segmented" id="direction-toggle" style="margin-bottom:16px">' +
-        '<button type="button" class="active" data-direction="add">Agregar saldo</button>' +
-        '<button type="button" data-direction="remove">Usar ahorro</button>' +
+        '<button type="button" class="active" data-direction="add">' + Icons.get("plus", 14) + ' Agregar saldo</button>' +
+        '<button type="button" class="segmented-danger" data-direction="remove">' + Icons.get("arrowDownRight", 14) + ' Usar ahorro</button>' +
       '</div>' +
       '<div class="field-group">' +
         '<label class="field-label">Monto (MXN)</label>' +
@@ -369,6 +369,7 @@ var SavingsView = (function () {
         '</div>' +
       '</div>' +
       '<p class="field-error" id="f-error" hidden></p>' +
+      '<div id="withdraw-return-question" class="split-warning" hidden></div>' +
       '<button class="btn btn-success modal-footer-btn" id="f-submit">Agregar saldo</button>';
 
     Modals.open({
@@ -421,10 +422,33 @@ var SavingsView = (function () {
           });
         });
 
+        var returnQuestionEl = sheet.querySelector("#withdraw-return-question");
+
+        function finalizeSave(amount, method, note, date, returnToBalance) {
+          var session = App.session();
+          var signedAmount = direction === "add" ? amount : -amount;
+
+          // "Agregar saldo" sale de tu billetera y queda como egreso en movimientos.
+          // "Usar ahorro" solo regresa a tu saldo disponible (como ingreso) si
+          // elegiste que sí — si ya gastaste ese dinero en otra cosa, no vuelve
+          // a sumarse a la billetera, solo se descuenta de la meta.
+          var linkedTxId = direction === "add"
+            ? pushLinkedTransaction("egreso", "Ahorro: " + cat.name, amount, method, date)
+            : (returnToBalance ? pushLinkedTransaction("ingreso", "Ahorro: " + cat.name, amount, method, date) : null);
+
+          Storage.savingsDeposits.add(code(), {
+            id: Utils.uid(), categoryId: categoryId, amount: signedAmount, note: note, date: date, method: method,
+            author: session.name, authorColor: session.color, createdAt: Date.now(), linkedTxId: linkedTxId
+          });
+          Modals.close();
+          App.refresh();
+        }
+
         submitBtn.addEventListener("click", function () {
           var amount = parseFloat(sheet.querySelector("#f-amount").value);
           if (!amount || amount <= 0) { sheet.querySelector("#f-amount").focus(); return; }
           errorEl.hidden = true;
+          returnQuestionEl.hidden = true;
 
           if (direction === "add") {
             var available = availableBalance(method);
@@ -443,22 +467,28 @@ var SavingsView = (function () {
 
           var note = sheet.querySelector("#f-note").value.trim();
           var date = sheet.querySelector("#f-date").value || Utils.todayISO();
-          var session = App.session();
-          var signedAmount = direction === "add" ? amount : -amount;
 
-          // "Agregar saldo" sale de tu billetera y queda como egreso en movimientos.
-          // "Usar ahorro" solo reduce la meta: el dinero ya salio de tu billetera
-          // cuando lo ahorraste, asi que no vuelve a sumarse como ingreso.
-          var linkedTxId = direction === "add"
-            ? pushLinkedTransaction("egreso", "Ahorro: " + cat.name, amount, method, date)
-            : null;
+          if (direction === "add") {
+            finalizeSave(amount, method, note, date, false);
+            return;
+          }
 
-          Storage.savingsDeposits.add(code(), {
-            id: Utils.uid(), categoryId: categoryId, amount: signedAmount, note: note, date: date, method: method,
-            author: session.name, authorColor: session.color, createdAt: Date.now(), linkedTxId: linkedTxId
+          // "Usar ahorro": pregunta si ese dinero vuelve a estar disponible en
+          // tu billetera (p.ej. cambiaste de planes) o si ya lo gastaste en lo
+          // que estabas ahorrando (no debe volver a sumarse al saldo).
+          returnQuestionEl.hidden = false;
+          returnQuestionEl.innerHTML =
+            "<p>¿Este dinero regresa a tu saldo disponible, o ya lo gastaste?</p>" +
+            '<div style="display:flex;gap:8px">' +
+              '<button type="button" class="btn btn-secondary-outline" id="f-return-yes" style="flex:1">Sí, a mi saldo</button>' +
+              '<button type="button" class="btn btn-danger-outline" id="f-return-no" style="flex:1">Ya lo gasté</button>' +
+            "</div>";
+          returnQuestionEl.querySelector("#f-return-yes").addEventListener("click", function () {
+            finalizeSave(amount, method, note, date, true);
           });
-          Modals.close();
-          App.refresh();
+          returnQuestionEl.querySelector("#f-return-no").addEventListener("click", function () {
+            finalizeSave(amount, method, note, date, false);
+          });
         });
       }
     });

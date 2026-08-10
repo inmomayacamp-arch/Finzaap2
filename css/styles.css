@@ -482,6 +482,7 @@ input{ font-family:inherit; }
 }
 .balance-mini .mini-value.card-account{ color:var(--indigo-500); }
 .balance-mini .mini-value.cash-account{ color:var(--amber-500); }
+.balance-mini .mini-value.negative{ color:var(--red-500); }
 
 .balance-total{
   display:flex;
@@ -501,6 +502,26 @@ input{ font-family:inherit; }
 .value.positive{ color:var(--green-500); }
 .value.negative{ color:var(--red-500); }
 .value.neutral{ color:var(--text); }
+
+.split-warning{
+  background:var(--amber-50);
+  border:1px solid rgba(245,158,11,0.35);
+  border-radius:var(--radius-md);
+  padding:12px 14px;
+  margin-bottom:14px;
+}
+.split-warning p{
+  font-size:13.5px;
+  color:var(--text-secondary);
+  line-height:1.5;
+  margin-bottom:10px;
+}
+.split-warning .btn{ width:100%; }
+.split-warning.error{
+  background:var(--red-50);
+  border-color:rgba(239,68,68,0.35);
+}
+.split-warning.error p{ margin-bottom:0; color:var(--red-500); font-weight:600; }
 
 .stat-card .stat-label{
   font-size:11px;
@@ -793,6 +814,13 @@ input{ font-family:inherit; }
   font-size:13.5px;
   color:var(--text-tertiary);
   cursor:pointer;
+}
+.segmented button.segmented-danger{
+  color:var(--red-500);
+  font-weight:700;
+}
+.segmented button.segmented-danger.active{
+  color:var(--red-500);
 }
 .segmented button.active{
   background:var(--surface);
