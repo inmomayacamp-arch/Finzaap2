@@ -308,6 +308,7 @@ var HomeView = (function () {
           '<span class="curr-sign">$</span>' +
           '<input type="number" inputmode="decimal" id="f-amount" placeholder="0" min="0" step="0.01" value="' + (isEdit ? existing.amount : "") + '">' +
         '</div>' +
+        '<div id="balance-hint" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>' +
       '</div>' +
       '<div class="field-textline">' +
         '<input type="text" id="f-description" class="plain-input-underline" placeholder="Concepto" value="' + (isEdit ? Utils.escapeHtml(existing.description || "") : "") + '">' +
@@ -345,11 +346,23 @@ var HomeView = (function () {
       html: html,
       onMount: function (sheet) {
         var method = initialMethod;
+        var hintEl = sheet.querySelector("#balance-hint");
+
+        function updateHint() {
+          var list = Storage.transactions.list(code());
+          if (isEdit) list = list.filter(function (t) { return t.id !== existing.id; });
+          var bal = computeWallet(list);
+          var available = method === "tarjeta" ? bal.card : bal.cash;
+          hintEl.textContent = "Disponible en " + (method === "tarjeta" ? "tarjeta" : "efectivo") + ": " + Utils.formatMoney(available);
+        }
+        updateHint();
+
         sheet.querySelectorAll("[data-method]").forEach(function (btn) {
           btn.addEventListener("click", function () {
             method = btn.getAttribute("data-method");
             sheet.querySelectorAll("[data-method]").forEach(function (b) { b.classList.remove("selected", theme); });
             btn.classList.add("selected", theme);
+            updateHint();
           });
         });
 
@@ -375,6 +388,7 @@ var HomeView = (function () {
                     b.classList.toggle("selected", b.getAttribute("data-method") === method);
                     b.classList.toggle(theme, b.getAttribute("data-method") === method);
                   });
+                  updateHint();
                   pickerOpen = false;
                   toggleBtn.classList.remove("active");
                   pickerSlot.innerHTML = "";
