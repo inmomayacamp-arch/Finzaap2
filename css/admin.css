@@ -1,0 +1,108 @@
+/* =========================================================
+   admin.css — panel de administrador
+   Reutiliza variables y componentes de css/styles.css (botones,
+   inputs, tarjetas); esto solo agrega el layout propio del panel.
+   ========================================================= */
+
+.admin-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  position:sticky;
+  top:0;
+  z-index:5;
+}
+.admin-brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:700;
+  font-size:15px;
+  color:var(--purple-500);
+}
+.admin-brand span{
+  font-weight:600;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:var(--text-muted);
+  background:var(--surface-alt);
+  padding:2px 8px;
+  border-radius:999px;
+  margin-left:2px;
+}
+
+.admin-main{
+  max-width:1080px;
+  margin:0 auto;
+  padding:20px 16px 60px;
+}
+
+.admin-stats-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:20px;
+}
+.admin-stat-card{
+  background:var(--surface);
+  border-radius:var(--radius-lg);
+  padding:16px;
+  box-shadow:var(--shadow-card);
+}
+.admin-stat-label{
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:var(--text-muted);
+  margin-bottom:6px;
+}
+.admin-stat-value{
+  font-family:var(--font-mono);
+  font-size:22px;
+  font-weight:600;
+  color:var(--text);
+}
+
+.admin-table-card{ overflow:hidden; }
+.admin-table-wrap{
+  overflow-x:auto;
+  margin:10px -18px -18px;
+}
+.admin-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13.5px;
+  white-space:nowrap;
+}
+.admin-table th{
+  text-align:left;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:var(--text-muted);
+  padding:10px 18px;
+  border-bottom:1px solid var(--border);
+}
+.admin-table td{
+  padding:12px 18px;
+  border-bottom:1px solid var(--border);
+  color:var(--text-secondary);
+}
+.admin-table tr:last-child td{ border-bottom:none; }
+.admin-code{
+  font-family:var(--font-mono);
+  font-weight:600;
+  color:var(--text);
+}
+.admin-muted{ color:var(--text-muted); }
+.admin-empty{ text-align:center; color:var(--text-muted); padding:24px 18px !important; }
+
+@media (min-width:640px){
+  .admin-stats-grid{ grid-template-columns:repeat(5,1fr); }
+}

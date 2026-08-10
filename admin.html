@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="robots" content="noindex, nofollow">
+<title>FinzApp — Admin</title>
+<link rel="icon" href="/icons/favicon.ico" sizes="32x32">
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="admin-login" class="setup-screen">
+  <div class="setup-card">
+    <div class="setup-icon">
+      <svg viewBox="0 0 60 35" width="30" height="18" role="img" aria-label="FinzApp">
+        <mask id="fz-admin" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+          <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+          <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+        </mask>
+        <circle cx="17.5" cy="17.5" r="17.5" fill="#FFFFFF" mask="url(#fz-admin)"/>
+        <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="#FFFFFF" stroke-width="5.0"/>
+      </svg>
+    </div>
+    <h1>Panel de administrador</h1>
+    <p class="setup-sub">Inicia sesión con tu cuenta de FinzApp.</p>
+    <input type="email" id="admin-email" class="input" placeholder="Correo" autocomplete="username">
+    <input type="password" id="admin-password" class="input" placeholder="Contraseña" autocomplete="current-password">
+    <button class="btn btn-primary" id="admin-login-btn">Entrar</button>
+    <p class="field-error" id="admin-login-error" hidden></p>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="admin-dashboard" hidden>
+  <header class="admin-topbar">
+    <div class="admin-brand">
+      <svg viewBox="0 0 60 35" width="20" height="12" role="img" aria-label="FinzApp">
+        <mask id="fz-admin-top" maskUnits="userSpaceOnUse" x="-4" y="-4" width="68" height="43">
+          <rect x="-4" y="-4" width="68" height="43" fill="#fff"/>
+          <circle cx="42.5" cy="17.5" r="19.0" fill="#000"/>
+        </mask>
+        <circle cx="17.5" cy="17.5" r="17.5" fill="currentColor" mask="url(#fz-admin-top)"/>
+        <circle cx="42.5" cy="17.5" r="15.0" fill="none" stroke="currentColor" stroke-width="5.0"/>
+      </svg>
+      FinzApp <span>Admin</span>
+    </div>
+    <button class="btn btn-secondary btn-pill" id="admin-logout">Cerrar sesión</button>
+  </header>
+
+  <main class="admin-main">
+    <div class="admin-stats-grid" id="admin-stats"></div>
+
+    <div class="card admin-table-card">
+      <div class="card-label-sm">Cuentas</div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Miembros</th>
+              <th>Creada</th>
+              <th>Movimientos</th>
+              <th>Última actividad</th>
+            </tr>
+          </thead>
+          <tbody id="admin-accounts-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+/* =========================================================
+   admin.js — panel de administrador
+
+   La protección real no es esta pantalla de login: es que
+   admin_stats()/admin_list_accounts() en la base de datos
+   revisan is_admin() y truenan si quien las llama no está en la
+   tabla `admins` (ver sql/admin_panel.sql). Cualquiera que abra
+   /admin.html sin ser admin ve la pantalla de login y, si de
+   algún modo llega a llamar las funciones, no obtiene datos.
+   ========================================================= */
+
+var AdminApp = (function () {
+
+  var client = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+  function el(id) { return document.getElementById(id); }
+
+  function showLogin(message) {
+    el("admin-dashboard").hidden = true;
+    el("admin-login").hidden = false;
+    var err = el("admin-login-error");
+    if (message) { err.textContent = message; err.hidden = false; }
+    else { err.hidden = true; }
+  }
+
+  function showDashboard() {
+    el("admin-login").hidden = true;
+    el("admin-dashboard").hidden = false;
+  }
+
+  function statCardHTML(label, value) {
+    return (
+      '<div class="admin-stat-card">' +
+        '<div class="admin-stat-label">' + Utils.escapeHtml(label) + '</div>' +
+        '<div class="admin-stat-value">' + value + '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderStats(s) {
+    el("admin-stats").innerHTML = !s ? "" : (
+      statCardHTML("Cuentas totales", s.total_accounts) +
+      statCardHTML("Usuarios totales", s.total_users) +
+      statCardHTML("Movimientos totales", s.total_transactions) +
+      statCardHTML("Nuevas (7 días)", s.new_accounts_7d) +
+      statCardHTML("Nuevas (30 días)", s.new_accounts_30d)
+    );
+  }
+
+  function fmtDate(ms) {
+    if (!ms) return "—";
+    var d = new Date(Number(ms));
+    return d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" }) +
+      " · " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderAccounts(rows) {
+    var body = el("admin-accounts-body");
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="5" class="admin-empty">Sin cuentas todavía</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map(function (r) {
+      return (
+        "<tr>" +
+          '<td class="admin-code">' + Utils.escapeHtml(r.code) + "</td>" +
+          "<td>" + Utils.escapeHtml(r.members) + ' <span class="admin-muted">(' + r.member_count + ")</span></td>" +
+          "<td>" + fmtDate(r.created_at) + "</td>" +
+          "<td>" + r.transaction_count + "</td>" +
+          "<td>" + fmtDate(r.last_activity) + "</td>" +
+        "</tr>"
+      );
+    }).join("");
+  }
+
+  function loadDashboard() {
+    return Promise.all([
+      client.rpc("admin_stats"),
+      client.rpc("admin_list_accounts")
+    ]).then(function (results) {
+      var statsRes = results[0], accountsRes = results[1];
+      if (statsRes.error) throw statsRes.error;
+      if (accountsRes.error) throw accountsRes.error;
+      renderStats(statsRes.data && statsRes.data[0]);
+      renderAccounts(accountsRes.data || []);
+      showDashboard();
+    }).catch(function (err) {
+      showLogin("No tienes acceso al panel de administrador.");
+      console.warn("Admin:", err && err.message);
+    });
+  }
+
+  function wireLogin() {
+    var btn = el("admin-login-btn");
+    btn.addEventListener("click", function () {
+      var email = el("admin-email").value.trim();
+      var password = el("admin-password").value;
+      if (!email || !password) return;
+      btn.disabled = true;
+      btn.textContent = "Entrando…";
+      client.auth.signInWithPassword({ email: email, password: password })
+        .then(function (res) {
+          if (res.error) throw res.error;
+          return loadDashboard();
+        })
+        .catch(function (err) {
+          showLogin(err.message || "No se pudo iniciar sesión.");
+        })
+        .then(function () {
+          btn.disabled = false;
+          btn.textContent = "Entrar";
+        });
+    });
+
+    el("admin-password").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") btn.click();
+    });
+  }
+
+  function wireLogout() {
+    el("admin-logout").addEventListener("click", function () {
+      client.auth.signOut().then(function () { showLogin(); });
+    });
+  }
+
+  function init() {
+    wireLogin();
+    wireLogout();
+    // si ya iniciaste sesión en la app principal en este navegador,
+    // supabase-js reutiliza esa misma sesión aquí.
+    client.auth.getSession().then(function (res) {
+      if (res.data && res.data.session) loadDashboard();
+      else showLogin();
+    });
+  }
+
+  return { init: init };
+})();
+
+document.addEventListener("DOMContentLoaded", AdminApp.init);
