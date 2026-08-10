@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#6C5CE7">
 <title>FinzApp — Controla tus finanzas, todo en un solo lugar</title>
-<meta name="description" content="Registra ingresos, egresos, cobros, pagos y metas de ahorro desde el celular. Y si quieres, compártelo con tu pareja o familia. Prueba FinzApp gratis 7 días.">
+<meta name="description" content="Registra ingresos, egresos, cobros, pagos y metas de ahorro desde el celular. Y si quieres, compártelo con tu pareja o familia. Prueba FinzApp gratis.">
 <link rel="icon" href="/icons/favicon.ico" sizes="32x32">
 <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -35,7 +35,6 @@
     <nav class="l-nav-links" aria-label="Secciones">
       <a href="#funciones">Funciones</a>
       <a href="#compartir">Compartir</a>
-      <a href="#precios">Precios</a>
     </nav>
     <div class="l-nav-actions">
       <a class="l-link" href="index.html">Iniciar sesión</a>
@@ -54,7 +53,7 @@
         <h1>Controla tus finanzas, <em>todo en un solo lugar</em></h1>
         <p class="l-hero-sub">Registra tus ingresos y egresos, da seguimiento a lo que debes y te deben, y ahorra para tus metas — todo desde el celular, en segundos. Y si algún día quieres, lo compartes con quien tú decidas.</p>
         <div class="l-hero-ctas">
-          <a class="l-btn l-btn-primary l-btn-lg" href="index.html">Empezar gratis 7 días</a>
+          <a class="l-btn l-btn-primary l-btn-lg" href="index.html">Empezar gratis</a>
           <a class="l-btn l-btn-ghost l-btn-lg" href="index.html">Ya tengo cuenta</a>
         </div>
         <p class="l-hero-note">✓ Sin tarjeta de crédito &nbsp;·&nbsp; ✓ Acceso completo &nbsp;·&nbsp; ✓ Cancela cuando quieras</p>
@@ -241,15 +240,27 @@
   </section>
 
   <!-- ============ EXTRA: COMPARTIR ============ -->
-  <section class="l-section l-section-alt" id="compartir">
+  <section class="l-section l-section-share" id="compartir">
     <div class="l-wrap">
-      <div class="l-share-banner">
-        <div class="l-share-text">
-          <span class="l-price-badge">Extra, si tú quieres</span>
-          <h2>¿Vives en pareja o en familia? Compártelo con un código</h2>
-          <p>FinzApp funciona perfecto tú solo. Pero si quieres, conecta tu cuenta con la de alguien más — tu pareja, un familiar, quien sea — y ambos ven y registran movimientos en el mismo espacio, sincronizado al instante en los dos celulares.</p>
+      <div class="l-section-head l-section-head-center">
+        <span class="l-eyebrow">Lo que nos hace diferentes</span>
+        <h2>Llévalo en equipo, si tú quieres</h2>
+        <p>La mayoría de las apps de finanzas personales son de una sola persona. FinzApp te deja conectar tu cuenta con quien tú quieras — tu pareja, tu familia, tu roommate — y llevar el mismo espacio financiero entre los dos, en tiempo real.</p>
+      </div>
+
+      <!-- Conexión con código -->
+      <div class="l-show-row">
+        <div class="l-show-text">
+          <div class="l-show-tag theme-purple">🔗 Conexión</div>
+          <h3>Se conecta con un código, no con una contraseña compartida</h3>
+          <p>Comparte tu código personal con quien quieras sumar. En segundos, ambos ven y registran movimientos en el mismo espacio, sin compartir tu contraseña ni llevar dos cuentas separadas que cuadrar a mano.</p>
+          <ul class="l-show-list">
+            <li>Cada quien entra con su propio correo y contraseña</li>
+            <li>Lo que uno registra, el otro lo ve al instante</li>
+            <li>Puedes dejar de compartir cuando quieras</li>
+          </ul>
         </div>
-        <div class="l-share-visual" aria-hidden="true">
+        <div class="l-show-visual">
           <div class="l-mini-card l-share-card">
             <div class="l-share-avatars">
               <span class="l-avatar a1">TU</span>
@@ -257,6 +268,40 @@
             </div>
             <div class="l-share-code">Código: 8F3K-92LQ</div>
             <div class="l-mock-toast ok">✓ Sincronizado con Ana</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Movimientos compartidos -->
+      <div class="l-show-row l-show-row-rev">
+        <div class="l-show-text">
+          <div class="l-show-tag theme-pink">🏷️ Movimientos compartidos</div>
+          <h3>Cada movimiento, con nombre de quien lo registró</h3>
+          <p>No es una cuenta genérica: cada ingreso, egreso, cobro o pago queda marcado con quién lo agregó. Siempre está claro qué hizo cada quien, sin confusiones ni "¿tú apuntaste esto?".</p>
+          <ul class="l-show-list">
+            <li>Etiqueta con color por persona en cada movimiento</li>
+            <li>Ideal para pareja, familia o hasta un negocio compartido</li>
+            <li>El balance junta todo, sin importar quién lo registró</li>
+          </ul>
+        </div>
+        <div class="l-show-visual">
+          <div class="l-mini-card">
+            <div class="l-mini-card-title">Movimientos de hoy</div>
+            <div class="l-mock-row">
+              <div class="l-mock-icon in">↓</div>
+              <div class="l-mock-row-text"><b>Nómina</b><span class="l-author a-tu">Tú</span></div>
+              <div class="l-mock-row-amt in">+$14,000</div>
+            </div>
+            <div class="l-mock-row">
+              <div class="l-mock-icon out">↑</div>
+              <div class="l-mock-row-text"><b>Súper</b><span class="l-author a-an">Ana</span></div>
+              <div class="l-mock-row-amt out">-$1,240</div>
+            </div>
+            <div class="l-mock-row">
+              <div class="l-mock-icon out">↑</div>
+              <div class="l-mock-row-text"><b>Gasolina</b><span class="l-author a-tu">Tú</span></div>
+              <div class="l-mock-row-amt out">-$800</div>
+            </div>
           </div>
         </div>
       </div>
@@ -295,44 +340,12 @@
     </div>
   </section>
 
-  <!-- ============ PRECIOS ============ -->
-  <section class="l-section l-section-alt" id="precios">
-    <div class="l-wrap">
-      <div class="l-section-head">
-        <span class="l-eyebrow">Precios</span>
-        <h2>Un precio simple, sin sorpresas</h2>
-        <p>Prueba todas las funciones gratis. Decide si te quedas después de verlo funcionar.</p>
-      </div>
-
-      <div class="l-price-card">
-        <div class="l-price-trial">
-          <span class="l-price-badge">Empieza aquí</span>
-          <h3>7 días gratis, con todo incluido</h3>
-          <p>Sin tarjeta de crédito. Acceso completo a todas las secciones desde el primer minuto.</p>
-        </div>
-        <div class="l-price-tiers">
-          <div class="l-price-tier">
-            <div class="l-price-tier-label">Tu cuenta</div>
-            <div class="l-price-amount">$69<span>MXN / mes</span></div>
-            <p>Tu espacio financiero personal, completo.</p>
-          </div>
-          <div class="l-price-tier">
-            <div class="l-price-tier-label">Persona extra (opcional)</div>
-            <div class="l-price-amount">+$39<span>MXN / mes</span></div>
-            <p>Solo si conectas a alguien más a tu cuenta. Lo paga quien tiene la cuenta.</p>
-          </div>
-        </div>
-        <a class="l-btn l-btn-primary l-btn-lg l-price-cta" href="index.html">Crear mi cuenta gratis</a>
-      </div>
-    </div>
-  </section>
-
   <!-- ============ CTA FINAL ============ -->
   <section class="l-final">
     <div class="l-wrap l-final-inner">
       <h2>Empieza a organizar tus finanzas hoy</h2>
       <p>Te toma menos de un minuto crear tu cuenta.</p>
-      <a class="l-btn l-btn-primary l-btn-lg" href="index.html">Empezar gratis 7 días</a>
+      <a class="l-btn l-btn-primary l-btn-lg" href="index.html">Empezar gratis</a>
     </div>
   </section>
 
