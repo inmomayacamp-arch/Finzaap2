@@ -164,17 +164,22 @@ var Storage = (function () {
 
     // ---- escritura remota (fire-and-forget, no bloquea la UI) ----
 
+    function reportError(context, message) {
+      if (typeof Monitoring !== "undefined") Monitoring.reportSyncError(context, { message: message });
+      else console.warn(context + ":", message);
+    }
+
     function pushInsert(entity, code, item) {
       var c = client();
       if (!c) return;
       c.from(tableFor(entity)).insert(toRow(item, code))
-        .then(function (res) { setStatus(res.error ? "err" : "ok"); if (res.error) console.warn("Sync insert:", res.error.message); });
+        .then(function (res) { setStatus(res.error ? "err" : "ok"); if (res.error) reportError("Sync insert (" + entity + ")", res.error.message); });
     }
     function pushDelete(entity, code, id) {
       var c = client();
       if (!c) return;
       c.from(tableFor(entity)).delete().eq("id", id).eq("account_code", code)
-        .then(function (res) { setStatus(res.error ? "err" : "ok"); if (res.error) console.warn("Sync delete:", res.error.message); });
+        .then(function (res) { setStatus(res.error ? "err" : "ok"); if (res.error) reportError("Sync delete (" + entity + ")", res.error.message); });
     }
     function pushUpdate(entity, code, id, patch) {
       var c = client();
@@ -182,7 +187,7 @@ var Storage = (function () {
       var row = {};
       Object.keys(patch).forEach(function (k) { row[camelToSnake(k)] = patch[k]; });
       c.from(tableFor(entity)).update(row).eq("id", id).eq("account_code", code)
-        .then(function (res) { setStatus(res.error ? "err" : "ok"); if (res.error) console.warn("Sync update:", res.error.message); });
+        .then(function (res) { setStatus(res.error ? "err" : "ok"); if (res.error) reportError("Sync update (" + entity + ")", res.error.message); });
     }
 
     // ---- cuentas remotas ----
@@ -237,7 +242,7 @@ var Storage = (function () {
       });
       return Promise.all(jobs)
         .then(function () { writeJSON(accountKey(code, "meta"), { createdAt: Utils.todayISO() }); setStatus("ok"); return true; })
-        .catch(function (e) { console.warn("Sync pullAll:", e.message); setStatus("err"); return false; });
+        .catch(function (e) { reportError("Sync pullAll", e.message); setStatus("err"); return false; });
     }
 
     // ---- tiempo real: escucha cambios remotos y refresca ----
@@ -280,7 +285,7 @@ var Storage = (function () {
         );
       });
       channel = builder.subscribe(function (status, err) {
-        if (err) console.warn("Sync realtime:", err.message);
+        if (err) reportError("Sync realtime", err.message);
       });
     }
 

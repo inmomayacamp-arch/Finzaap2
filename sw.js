@@ -15,6 +15,7 @@ var SHELL_FILES = [
   "/manifest.json",
   "/css/styles.css",
   "/js/install.js",
+  "/js/monitoring.js",
   "/js/utils.js",
   "/js/icons.js",
   "/js/storage.js",
