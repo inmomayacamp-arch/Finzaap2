@@ -604,6 +604,15 @@ input{ font-family:inherit; }
   margin-bottom:2px;
 }
 
+.tx-list-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+.tx-list-head .section-title{ margin-bottom:0; }
+
 /* filas de movimientos */
 .tx-list{ display:flex; flex-direction:column; }
 .tx-row{

@@ -7,6 +7,8 @@ var ReportView = (function () {
   var periodType = "mes"; // 'dia' | 'semana' | 'mes'
   var periodOffset = 0;
   var typeFilter = "todo"; // 'todo' | 'ingresos' | 'egresos'
+  var showAllTx = false;
+  var TX_PREVIEW_COUNT = 7;
 
   function code() { return App.session().code; }
 
@@ -117,20 +119,32 @@ var ReportView = (function () {
         '<div class="summary-tile"><div class="stl-label">Balance</div><div class="stl-value" style="color:' + (balance < 0 ? "var(--red-500)" : "var(--text)") + '">' + Utils.formatMoney(balance) + '</div>' + deltaBadgeHTML(balance, prevBalance, false) + '</div>' +
       '</div>' +
 
+      transactionsCardHTML(sorted) +
+
       savingsPeriodCardHTML(savingsDeposits, range) +
       insightCardHTML(inPeriod) +
       trendChartCard(all) +
       categoryChartCard(inPeriod) +
       methodDistributionCardHTML(inPeriod) +
       topExpensesCardHTML(inPeriod) +
-      savingsOverviewCardHTML(savingsCategories, savingsDeposits) +
-
-      '<div class="card">' +
-        '<div class="section-title" style="margin-bottom:8px">' + sorted.length + ' transacci' + (sorted.length === 1 ? "ón" : "ones") + '</div>' +
-        (sorted.length ? '<div class="tx-list">' + sorted.map(HomeView.txRowHTML).join("") + '</div>' : HomeView.emptyStateHTML("📭", "Sin transacciones en este período")) +
-      '</div>';
+      savingsOverviewCardHTML(savingsCategories, savingsDeposits);
 
     attachEvents(container, inPeriod, range, savingsCategories, savingsDeposits);
+  }
+
+  function transactionsCardHTML(sorted) {
+    var visible = showAllTx ? sorted : sorted.slice(0, TX_PREVIEW_COUNT);
+    var hasMore = sorted.length > TX_PREVIEW_COUNT;
+
+    return (
+      '<div class="card">' +
+        '<div class="tx-list-head">' +
+          '<div class="section-title">' + sorted.length + ' transacci' + (sorted.length === 1 ? "ón" : "ones") + '</div>' +
+          (hasMore ? '<button type="button" id="btn-toggle-all-tx" class="btn-link">' + (showAllTx ? "Ver menos" : "Ver todas (" + sorted.length + ")") + '</button>' : "") +
+        '</div>' +
+        (visible.length ? '<div class="tx-list">' + visible.map(HomeView.txRowHTML).join("") + '</div>' : HomeView.emptyStateHTML("📭", "Sin transacciones en este período")) +
+      '</div>'
+    );
   }
 
   function segBtn(val, label) {
@@ -424,17 +438,27 @@ var ReportView = (function () {
       btn.addEventListener("click", function () {
         periodType = btn.getAttribute("data-period-type");
         periodOffset = 0;
+        showAllTx = false;
         App.refresh();
       });
     });
     container.querySelectorAll("[data-type-filter]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         typeFilter = btn.getAttribute("data-type-filter");
+        showAllTx = false;
         App.refresh();
       });
     });
-    container.querySelector("#period-prev").addEventListener("click", function () { periodOffset--; App.refresh(); });
-    container.querySelector("#period-next").addEventListener("click", function () { periodOffset++; App.refresh(); });
+    container.querySelector("#period-prev").addEventListener("click", function () { periodOffset--; showAllTx = false; App.refresh(); });
+    container.querySelector("#period-next").addEventListener("click", function () { periodOffset++; showAllTx = false; App.refresh(); });
+
+    var toggleAllBtn = container.querySelector("#btn-toggle-all-tx");
+    if (toggleAllBtn) {
+      toggleAllBtn.addEventListener("click", function () {
+        showAllTx = !showAllTx;
+        App.refresh();
+      });
+    }
 
     container.querySelectorAll(".tx-row[data-tx-id]").forEach(function (row) {
       row.addEventListener("click", function () {
