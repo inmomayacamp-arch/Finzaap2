@@ -285,7 +285,12 @@ var Storage = (function () {
         );
       });
       channel = builder.subscribe(function (status, err) {
-        if (err) reportError("Sync realtime", err.message);
+        // CLOSED/TIMED_OUT son parte normal del ciclo de reconexión (el
+        // celular se bloquea, cambia de wifi a datos, entra a un túnel,
+        // etc.) — la librería de Supabase reconecta y reintenta sola,
+        // así que reportar cada uno satura de avisos por algo que ya se
+        // resuelve solo. Solo CHANNEL_ERROR indica un fallo real.
+        if (err && status === "CHANNEL_ERROR") reportError("Sync realtime", err.message);
       });
     }
 
