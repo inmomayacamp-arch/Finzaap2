@@ -93,9 +93,6 @@ var ReceivablesView = (function () {
           '</div>' +
         '</div>' +
         '<div class="tx-amount" style="color:var(--amber-500)">' + Utils.formatMoney(item.amount) + '</div>' +
-        '<div class="tx-actions">' +
-          '<button class="icon-btn confirm" data-mark-paid="' + item.id + '" title="Marcar como cobrado">' + Icons.get("check", 14) + '</button>' +
-        '</div>' +
       '</div>'
     );
   }
@@ -128,16 +125,8 @@ var ReceivablesView = (function () {
     container.querySelector("#btn-add-receivable").addEventListener("click", function () { openAddModal(); });
     container.querySelector("#btn-add-template").addEventListener("click", function () { openTemplateModal(); });
 
-    container.querySelectorAll("[data-mark-paid]").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var item = Storage.receivables.list(code()).find(function (r) { return r.id === btn.getAttribute("data-mark-paid"); });
-        if (item) openConfirmCollectModal(item);
-      });
-    });
     container.querySelectorAll(".tx-row[data-item-id]").forEach(function (row) {
-      row.addEventListener("click", function (e) {
-        if (e.target.closest("[data-mark-paid]")) return;
+      row.addEventListener("click", function () {
         var item = Storage.receivables.list(code()).find(function (r) { return r.id === row.getAttribute("data-item-id"); });
         if (item) openDetailModal(item);
       });
@@ -226,13 +215,20 @@ var ReceivablesView = (function () {
         rows.map(function (r) { return '<div class="detail-row"><span class="dr-label">' + r.label + '</span><span class="dr-value">' + r.value + '</span></div>'; }).join("") +
       '</div>' +
       '<div class="detail-actions">' +
+        '<button class="btn btn-amber" id="btn-confirm-item">' + Icons.get("check", 15) + ' Confirmar cobro</button>' +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="btn btn-secondary-outline" id="btn-edit-item">Editar</button>' +
         '<button class="btn btn-danger-outline" id="btn-delete-item">Eliminar</button>' +
-        '<button class="btn btn-amber" id="btn-edit-item">Editar</button>' +
       '</div>';
 
     Modals.open({
       html: html,
       onMount: function (sheet) {
+        sheet.querySelector("#btn-confirm-item").addEventListener("click", function () {
+          Modals.close();
+          openConfirmCollectModal(item);
+        });
         sheet.querySelector("#btn-edit-item").addEventListener("click", function () {
           Modals.close();
           openAddModal(item);

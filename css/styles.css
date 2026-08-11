@@ -210,8 +210,6 @@ input{ font-family:inherit; }
   transition:background .15s ease, color .15s ease;
 }
 .icon-btn:hover{ background:var(--hover-tint); }
-.icon-btn.confirm{ background:var(--green-50); color:var(--green-500); }
-.icon-btn.confirm:hover{ background:#d3f5e6; }
 .icon-btn.danger{ background:var(--red-50); color:var(--red-500); }
 .icon-btn.danger:hover{ background:#fddede; }
 .icon-btn.add-tpl.theme-amber{ background:var(--amber-500); color:#fff; }
@@ -1254,6 +1252,7 @@ input{ font-family:inherit; }
 
 .detail-actions{ display:flex; gap:10px; }
 .detail-actions .btn{ flex:1; margin-top:0; }
+.detail-actions + .detail-actions{ margin-top:10px; }
 .detail-actions .btn-secondary-outline{
   background:none;
   border:1.5px solid var(--border);
