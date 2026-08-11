@@ -1,9 +1,10 @@
 {
   "name": "finzapp-api",
   "private": true,
-  "description": "Solo dependencias para la funcion programada de recordatorios (api/send-reminders.js). El sitio en si sigue siendo HTML/CSS/JS puro, sin build step.",
+  "description": "Solo dependencias para las funciones programadas/serverless (api/*.js). El sitio en si sigue siendo HTML/CSS/JS puro, sin build step.",
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "stripe": "^16.9.0"
   }
 }

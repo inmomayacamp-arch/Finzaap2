@@ -142,6 +142,7 @@ var App = (function () {
     document.getElementById("view-setup").hidden = true;
     document.getElementById("view-main").hidden = false;
     document.getElementById("sidebar-account-btn").addEventListener("click", function () { navigate("cuenta"); }, { once: true });
+    document.getElementById("readonly-banner-btn").addEventListener("click", function () { navigate("cuenta"); }, { once: true });
     currentTab = "inicio";
     renderNav();
     renderCurrentView();
@@ -154,6 +155,26 @@ var App = (function () {
     }
 
     maybeShowPushPrompt();
+    checkReadOnlyBanner();
+  }
+
+  // Aviso fijo arriba, visible sin importar la pestaña, cuando la
+  // prueba terminó y no hay plan activo. El bloqueo de verdad lo
+  // aplica la base de datos (has_active_access) -- esto solo avisa
+  // y manda a Cuenta a suscribirse.
+  function checkReadOnlyBanner() {
+    if (typeof Billing === "undefined" || !Storage.sync.isConfigured()) return;
+    Billing.getSubscriptionState(session()).then(function (state) {
+      var banner = document.getElementById("readonly-banner");
+      if (!banner) return;
+      if (state && !state.hasAccess) {
+        document.getElementById("readonly-banner-text").textContent =
+          "Tu prueba terminó — modo de solo lectura hasta que actives un plan.";
+        banner.hidden = false;
+      } else {
+        banner.hidden = true;
+      }
+    }).catch(function () {});
   }
 
   // Aviso proactivo, una vez arrancada la app, para que activar

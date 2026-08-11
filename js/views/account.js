@@ -58,6 +58,24 @@ var AccountView = (function () {
     });
   }
 
+  // Estado de la suscripcion (prueba/pagada/vencida): se carga una
+  // vez y se refresca la UI cuando llega. Solo para MOSTRAR el
+  // estado -- el bloqueo real de escritura lo aplica la base de
+  // datos (has_active_access), no esta cache.
+  var billingState = null;
+  var billingLoading = false;
+
+  function ensureBillingLoaded(session) {
+    if (!Storage.sync.isConfigured() || typeof Billing === "undefined") return;
+    if (billingState !== null || billingLoading) return;
+    billingLoading = true;
+    Billing.getSubscriptionState(session).then(function (state) {
+      billingState = state;
+      billingLoading = false;
+      App.refresh();
+    }).catch(function () { billingLoading = false; });
+  }
+
   // Estado de las notificaciones push: se carga una vez y se
   // refresca la UI cuando llega.
   var pushSubscribed = null; // null = aun no se sabe
@@ -93,6 +111,7 @@ var AccountView = (function () {
     var others = App.householdMembers(session);
     ensureJoinRequestsLoaded(session);
     ensurePushStateLoaded();
+    ensureBillingLoaded(session);
     var isShared = session.inviteCode && session.code !== session.inviteCode;
     var pushSupported = typeof Push !== "undefined" && Push.isSupported();
     var txs = Storage.transactions.list(code());
@@ -144,6 +163,7 @@ var AccountView = (function () {
       '</div>' +
 
       installCardHTML() +
+      billingCardHTML() +
 
       '<div class="card">' +
         '<div class="card-label-sm">' + Icons.get("users", 12) + ' Tu código personal</div>' +
@@ -270,6 +290,52 @@ var AccountView = (function () {
     return "";
   }
 
+  function billingCardHTML() {
+    if (!billingState) return "";
+    var s = billingState;
+    var planLabel = s.sub && s.sub.plan === "annual" ? "Plan anual" : "Plan mensual";
+
+    if (s.hasActiveSub) {
+      var renewDate = s.sub.current_period_end
+        ? new Date(Number(s.sub.current_period_end)).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+        : "";
+      return (
+        '<div class="card">' +
+          '<div class="card-label-sm">' + Icons.get("shield", 12) + ' Tu plan</div>' +
+          '<div class="sync-status-text ok" style="margin:6px 0 12px">' + Icons.get("check", 14) + ' ' + planLabel + ' activo' + (renewDate ? ' · renueva el ' + renewDate : '') + '</div>' +
+          '<button class="btn btn-secondary" id="btn-manage-billing">Administrar suscripción</button>' +
+          '<p class="field-error" id="billing-error" hidden></p>' +
+        '</div>'
+      );
+    }
+
+    if (s.inTrial) {
+      return (
+        '<div class="card">' +
+          '<div class="card-label-sm">' + Icons.get("shield", 12) + ' Tu plan</div>' +
+          '<p style="font-size:13px;color:var(--text-secondary);margin:6px 0 14px">Estás en tu <strong>prueba gratis</strong> — quedan <strong>' + s.trialDaysLeft + ' día' + (s.trialDaysLeft === 1 ? "" : "s") + '</strong> con acceso completo.</p>' +
+          '<div style="display:flex;gap:10px">' +
+            '<button class="btn btn-secondary-outline" id="btn-sub-monthly" style="flex:1">Mensual $59</button>' +
+            '<button class="btn btn-secondary-outline" id="btn-sub-annual" style="flex:1">Anual $599</button>' +
+          '</div>' +
+          '<p class="field-error" id="billing-error" hidden></p>' +
+        '</div>'
+      );
+    }
+
+    return (
+      '<div class="card" style="border:1.5px solid rgba(239,68,68,0.35)">' +
+        '<div class="card-label-sm" style="color:var(--red-500)">' + Icons.get("shield", 12) + ' Tu prueba terminó</div>' +
+        '<p style="font-size:13px;color:var(--text-secondary);margin:6px 0 14px">Tu cuenta está en <strong>modo de solo lectura</strong>: puedes ver tu información, pero no agregar, editar ni eliminar movimientos hasta que actives un plan.</p>' +
+        '<div style="display:flex;gap:10px">' +
+          '<button class="btn btn-primary" id="btn-sub-monthly" style="flex:1">Mensual $59</button>' +
+          '<button class="btn btn-primary" id="btn-sub-annual" style="flex:1">Anual $599</button>' +
+        '</div>' +
+        '<p class="field-error" id="billing-error" hidden></p>' +
+      '</div>'
+    );
+  }
+
   function supportMailtoHref(session) {
     var subject = "Soporte FinzApp";
     var body = "Cuenta: " + (session.email || session.name) + "\nCódigo: " + session.code + "\n\nDescribe aquí tu duda o el problema que tuviste:\n";
@@ -300,6 +366,35 @@ var AccountView = (function () {
         InstallPrompt.prompt().then(function () { App.refresh(); });
       });
     }
+
+    var manageBillingBtn = container.querySelector("#btn-manage-billing");
+    if (manageBillingBtn) {
+      manageBillingBtn.addEventListener("click", function () {
+        var errorEl = container.querySelector("#billing-error");
+        errorEl.hidden = true;
+        manageBillingBtn.disabled = true;
+        Billing.openPortal().catch(function (err) {
+          manageBillingBtn.disabled = false;
+          errorEl.textContent = err.message || String(err);
+          errorEl.hidden = false;
+        });
+      });
+    }
+
+    ["monthly", "annual"].forEach(function (plan) {
+      var btn = container.querySelector("#btn-sub-" + (plan === "monthly" ? "monthly" : "annual"));
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        var errorEl = container.querySelector("#billing-error");
+        errorEl.hidden = true;
+        container.querySelectorAll("#btn-sub-monthly, #btn-sub-annual").forEach(function (b) { b.disabled = true; });
+        Billing.startCheckout(plan).catch(function (err) {
+          container.querySelectorAll("#btn-sub-monthly, #btn-sub-annual").forEach(function (b) { b.disabled = false; });
+          errorEl.textContent = err.message || String(err);
+          errorEl.hidden = false;
+        });
+      });
+    });
 
     var pushBtn = container.querySelector("#btn-toggle-push");
     if (pushBtn) {
