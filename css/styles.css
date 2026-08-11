@@ -1388,6 +1388,30 @@ input{ font-family:inherit; }
 .recurring-toggle-btn.theme-indigo:hover{ background:#e4defc; }
 .recurring-toggle-btn.theme-indigo.active{ background:var(--indigo-500); color:#fff; }
 
+.category-chip-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:10px;
+}
+.category-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:1.5px solid var(--border);
+  background:var(--surface);
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text-secondary);
+  cursor:pointer;
+  white-space:nowrap;
+}
+.category-chip.selected.income{ border-color:var(--green-500); background:var(--green-50); color:var(--green-500); }
+.category-chip.selected.expense{ border-color:var(--red-500); background:var(--red-50); color:var(--red-500); }
+.category-chip-add{ color:var(--text-muted); border-style:dashed; }
+
 .recurring-picker{
   background:var(--surface-alt);
   border-radius:var(--radius-md);

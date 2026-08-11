@@ -6,6 +6,30 @@ var HomeView = (function () {
 
   function code() { return App.session().code; }
 
+  // categorías más comunes por tipo, para el selector rápido del
+  // formulario -- el campo sigue siendo texto libre en storage, esto
+  // solo precarga las opciones típicas.
+  var CATEGORY_SUGGESTIONS = {
+    ingreso: ["Sueldo", "Freelance", "Inversiones", "Ahorro", "Regalos", "General"],
+    egreso: ["Alimentación", "Transporte", "Vivienda", "Servicios", "Salud", "Entretenimiento", "Ropa", "Educación", "Deudas", "General"]
+  };
+
+  function categoryChipsHTML(type, selectedCategory) {
+    var options = CATEGORY_SUGGESTIONS[type] || CATEGORY_SUGGESTIONS.egreso;
+    var selectedLower = (selectedCategory || "").trim().toLowerCase();
+    return (
+      '<div class="category-chip-row">' +
+        options.map(function (cat) {
+          var isSel = cat.toLowerCase() === selectedLower;
+          return '<button type="button" class="category-chip' + (isSel ? " selected" : "") + '" data-category="' + Utils.escapeHtml(cat) + '">' +
+            Icons.categoryEmoji(cat) + " " + Utils.escapeHtml(cat) +
+          "</button>";
+        }).join("") +
+        '<button type="button" class="category-chip category-chip-add" id="category-chip-add">+ Otra</button>' +
+      "</div>"
+    );
+  }
+
   function computeWallet(list) {
     var card = 0, cash = 0;
     list.forEach(function (t) {
@@ -313,8 +337,10 @@ var HomeView = (function () {
       '<div class="field-textline">' +
         '<input type="text" id="f-description" class="plain-input-underline" placeholder="Concepto" value="' + (isEdit ? Utils.escapeHtml(existing.description || "") : "") + '">' +
       '</div>' +
-      '<div class="field-textline">' +
-        '<input type="text" id="f-category" class="plain-input-underline" placeholder="Categoría (ej. Trabajo, Alimentación)" value="' + (isEdit ? Utils.escapeHtml(existing.category || "") : "") + '">' +
+      '<div class="field-group">' +
+        '<label class="field-label">Categoría</label>' +
+        categoryChipsHTML(type, isEdit ? existing.category : "") +
+        '<input type="text" id="f-category" class="plain-input-underline" placeholder="O escribe una categoría" value="' + (isEdit ? Utils.escapeHtml(existing.category || "") : "") + '">' +
       '</div>' +
       '<div class="field-textline">' +
         '<input type="text" id="f-note" class="plain-input-underline" placeholder="Nota o comentario (opcional)" value="' + (isEdit ? Utils.escapeHtml(existing.note || "") : "") + '">' +
@@ -366,6 +392,31 @@ var HomeView = (function () {
           });
         });
 
+        var categoryInput = sheet.querySelector("#f-category");
+        function syncCategoryChips() {
+          var val = categoryInput.value.trim().toLowerCase();
+          sheet.querySelectorAll(".category-chip[data-category]").forEach(function (chip) {
+            chip.classList.toggle("selected", chip.getAttribute("data-category").toLowerCase() === val);
+            chip.classList.toggle(theme, chip.getAttribute("data-category").toLowerCase() === val);
+          });
+        }
+        sheet.querySelectorAll(".category-chip[data-category]").forEach(function (chip) {
+          chip.addEventListener("click", function () {
+            categoryInput.value = chip.getAttribute("data-category");
+            syncCategoryChips();
+          });
+        });
+        var addCategoryBtn = sheet.querySelector("#category-chip-add");
+        if (addCategoryBtn) {
+          addCategoryBtn.addEventListener("click", function () {
+            categoryInput.value = "";
+            syncCategoryChips();
+            categoryInput.focus();
+          });
+        }
+        categoryInput.addEventListener("input", syncCategoryChips);
+        syncCategoryChips();
+
         var pickerOpen = false;
         var pickerSlot = sheet.querySelector("#recurring-picker-slot");
         var toggleBtn = sheet.querySelector("#toggle-recurring");
@@ -381,7 +432,8 @@ var HomeView = (function () {
                   if (!tpl) return;
                   sheet.querySelector("#f-amount").value = tpl.amount;
                   sheet.querySelector("#f-description").value = tpl.description;
-                  sheet.querySelector("#f-category").value = tpl.category || "";
+                  categoryInput.value = tpl.category || "";
+                  syncCategoryChips();
                   sheet.querySelector("#f-note").value = tpl.note || "";
                   method = tpl.method || "tarjeta";
                   sheet.querySelectorAll("[data-method]").forEach(function (b) {
