@@ -43,8 +43,23 @@ var AdminApp = (function () {
       statCardHTML("Usuarios totales", s.total_users) +
       statCardHTML("Movimientos totales", s.total_transactions) +
       statCardHTML("Nuevas (7 días)", s.new_accounts_7d) +
-      statCardHTML("Nuevas (30 días)", s.new_accounts_30d)
+      statCardHTML("Nuevas (30 días)", s.new_accounts_30d) +
+      statCardHTML("Pagando", s.paying_accounts) +
+      statCardHTML("En prueba", s.trial_accounts) +
+      statCardHTML("Pago fallido", s.past_due_accounts)
     );
+  }
+
+  function planTagHTML(r) {
+    if (r.sub_status === "active" || r.sub_status === "trialing") {
+      var label = r.plan === "annual" ? "Anual" : r.plan === "monthly" ? "Mensual" : "Pagando";
+      return '<span class="admin-plan-tag paid">' + label + "</span>";
+    }
+    if (r.sub_status === "past_due") return '<span class="admin-plan-tag past-due">Pago fallido</span>';
+    if (r.sub_status === "grandfathered") return '<span class="admin-plan-tag paid">Exenta</span>';
+    if (r.sub_status === "canceled" || r.sub_status === "unpaid") return '<span class="admin-plan-tag none">Cancelada</span>';
+    if (r.has_access) return '<span class="admin-plan-tag trial">Prueba</span>';
+    return '<span class="admin-plan-tag none">Sin plan</span>';
   }
 
   function fmtDate(ms) {
@@ -65,6 +80,7 @@ var AdminApp = (function () {
         "<td>" + fmtDate(r.created_at) + "</td>" +
         "<td>" + r.transaction_count + "</td>" +
         "<td>" + fmtDate(r.last_activity) + "</td>" +
+        "<td>" + planTagHTML(r) + "</td>" +
       "</tr>"
     );
   }
@@ -75,7 +91,7 @@ var AdminApp = (function () {
     var body = el("admin-accounts-body");
 
     body.innerHTML = !visible.length
-      ? '<tr><td colspan="5" class="admin-empty">Sin cuentas todavía</td></tr>'
+      ? '<tr><td colspan="6" class="admin-empty">Sin cuentas todavía</td></tr>'
       : visible.map(accountRowHTML).join("");
 
     var emptyCount = allAccounts.length - allAccounts.filter(function (r) { return Number(r.member_count) > 0; }).length;
