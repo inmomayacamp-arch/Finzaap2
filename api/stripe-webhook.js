@@ -26,6 +26,15 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // Evita que un evento de modo test (o viceversa) contamine los datos
+  // reales si algun dia esta funcion corre con llaves de otro modo que
+  // las configuradas en Stripe para este mismo endpoint.
+  var isLiveKey = /^sk_live_/.test(process.env.STRIPE_SECRET_KEY || "");
+  if (event.livemode !== isLiveKey) {
+    sendJson(res, 200, { received: true, ignored: "modo de Stripe distinto al configurado" });
+    return;
+  }
+
   var supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   function planFromPriceId(priceId) {
