@@ -152,6 +152,47 @@ var App = (function () {
       Storage.sync.pullAll(code).then(function () { refresh(); });
       Storage.sync.subscribe(code, refresh);
     }
+
+    maybeShowPushPrompt();
+  }
+
+  // Aviso proactivo, una vez arrancada la app, para que activar
+  // recordatorios no dependa de que alguien lo encuentre en Cuenta.
+  function maybeShowPushPrompt() {
+    if (typeof Push === "undefined" || typeof Modals === "undefined" || !Push.shouldPrompt()) return;
+
+    setTimeout(function () {
+      if (!Push.shouldPrompt()) return; // pudo activarlo/rechazarlo por otro lado mientras tanto
+      var s = session();
+
+      Modals.open({
+        html:
+          Modals.headerHTML({ icon: "bell", theme: "collect", title: "Activar recordatorios", sub: "Pagos, gastos del día y tu reporte semanal" }) +
+          '<p style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:20px">' +
+            'Te avisamos si tienes un pago por vencer, si no has registrado nada en el día, y cada domingo con tu reporte semanal.' +
+          '</p>' +
+          '<div class="detail-actions">' +
+            '<button class="btn btn-secondary-outline" id="btn-push-later">Ahora no</button>' +
+            '<button class="btn btn-primary" id="btn-push-yes">Activar</button>' +
+          '</div>',
+        onMount: function (sheet) {
+          sheet.querySelector("#btn-push-later").addEventListener("click", function () {
+            Push.dismissPrompt();
+            Modals.close();
+          });
+          sheet.querySelector("#btn-push-yes").addEventListener("click", function () {
+            var btn = sheet.querySelector("#btn-push-yes");
+            btn.disabled = true;
+            Push.subscribe(s.userId).then(function () {
+              Modals.close();
+            }).catch(function () {
+              Push.dismissPrompt();
+              Modals.close();
+            });
+          });
+        }
+      });
+    }, 1200);
   }
 
   function showSetup() {

@@ -83,11 +83,32 @@ var Push = (function () {
     });
   }
 
+  // ---- aviso proactivo al abrir la app ----
+
+  var PROMPT_DISMISS_KEY = "finanza:pushPromptDismissedAt";
+  var DISMISS_DAYS = 7;
+
+  // true solo si tiene sentido preguntar: el navegador lo soporta,
+  // nunca se le ha preguntado antes (permission === "default"), y no
+  // dijo "ahora no" hace menos de una semana.
+  function shouldPrompt() {
+    if (!isSupported()) return false;
+    if (Notification.permission !== "default") return false;
+    var dismissedAt = Number(localStorage.getItem(PROMPT_DISMISS_KEY) || 0);
+    return (Date.now() - dismissedAt) >= DISMISS_DAYS * 86400000;
+  }
+
+  function dismissPrompt() {
+    try { localStorage.setItem(PROMPT_DISMISS_KEY, String(Date.now())); } catch (e) {}
+  }
+
   return {
     isSupported: isSupported,
     permission: permission,
     isSubscribed: isSubscribed,
     subscribe: subscribe,
-    unsubscribe: unsubscribe
+    unsubscribe: unsubscribe,
+    shouldPrompt: shouldPrompt,
+    dismissPrompt: dismissPrompt
   };
 })();
