@@ -48,10 +48,23 @@
   margin-bottom:20px;
 }
 .admin-stat-card{
+  display:block;
+  width:100%;
   background:var(--surface);
+  border:none;
   border-radius:var(--radius-lg);
   padding:16px;
   box-shadow:var(--shadow-card);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  transition:box-shadow .15s;
+}
+.admin-stat-card:hover{ box-shadow:0 0 0 2px var(--purple-400) inset; }
+.admin-stat-card:focus-visible{ outline:2px solid var(--purple-500); outline-offset:2px; }
+.admin-stat-card.active{
+  background:var(--purple-50);
+  box-shadow:0 0 0 2px var(--purple-500) inset;
 }
 .admin-stat-label{
   font-size:11px;
@@ -87,6 +100,17 @@
   user-select:none;
 }
 .admin-toggle-empty input{ accent-color:var(--purple-500); width:14px; height:14px; }
+.admin-table-head-actions{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.admin-clear-filter{
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--purple-500);
+  background:var(--purple-50);
+  border:none;
+  border-radius:999px;
+  padding:5px 12px;
+  cursor:pointer;
+}
 .admin-row-empty{ opacity:0.55; }
 .admin-tag-empty{
   display:inline-block;

@@ -28,25 +28,43 @@ var AdminApp = (function () {
     el("admin-dashboard").hidden = false;
   }
 
-  function statCardHTML(label, value) {
+  var DAY_MS = 86400000;
+
+  // Cada tarjeta de estadística filtra la tabla de cuentas de abajo
+  // al hacer click -- la condición aquí refleja lo más cerca posible
+  // lo que la misma tarjeta cuenta en admin_stats().
+  var STAT_FILTERS = {
+    total: null,
+    users: function (r) { return Number(r.member_count) > 0; },
+    transactions: function (r) { return Number(r.transaction_count) > 0; },
+    new7: function (r) { return Number(r.created_at) >= Date.now() - 7 * DAY_MS; },
+    new30: function (r) { return Number(r.created_at) >= Date.now() - 30 * DAY_MS; },
+    paying: function (r) { return r.sub_status === "active" || r.sub_status === "trialing"; },
+    trial: function (r) { return !r.sub_status && r.has_access; },
+    pastdue: function (r) { return r.sub_status === "past_due"; }
+  };
+  var activeFilterKey = null;
+
+  function statCardHTML(label, value, key) {
+    var active = key === activeFilterKey;
     return (
-      '<div class="admin-stat-card">' +
+      '<button type="button" class="admin-stat-card' + (active ? " active" : "") + '" data-filter-key="' + key + '">' +
         '<div class="admin-stat-label">' + Utils.escapeHtml(label) + '</div>' +
         '<div class="admin-stat-value">' + value + '</div>' +
-      '</div>'
+      '</button>'
     );
   }
 
   function renderStats(s) {
     el("admin-stats").innerHTML = !s ? "" : (
-      statCardHTML("Cuentas totales", s.total_accounts) +
-      statCardHTML("Usuarios totales", s.total_users) +
-      statCardHTML("Movimientos totales", s.total_transactions) +
-      statCardHTML("Nuevas (7 días)", s.new_accounts_7d) +
-      statCardHTML("Nuevas (30 días)", s.new_accounts_30d) +
-      statCardHTML("Pagando", s.paying_accounts) +
-      statCardHTML("En prueba", s.trial_accounts) +
-      statCardHTML("Pago fallido", s.past_due_accounts)
+      statCardHTML("Cuentas totales", s.total_accounts, "total") +
+      statCardHTML("Usuarios totales", s.total_users, "users") +
+      statCardHTML("Movimientos totales", s.total_transactions, "transactions") +
+      statCardHTML("Nuevas (7 días)", s.new_accounts_7d, "new7") +
+      statCardHTML("Nuevas (30 días)", s.new_accounts_30d, "new30") +
+      statCardHTML("Pagando", s.paying_accounts, "paying") +
+      statCardHTML("En prueba", s.trial_accounts, "trial") +
+      statCardHTML("Pago fallido", s.past_due_accounts, "pastdue")
     );
   }
 
@@ -70,6 +88,7 @@ var AdminApp = (function () {
   }
 
   var allAccounts = [];
+  var lastStats = null;
 
   function accountRowHTML(r) {
     var empty = Number(r.member_count) === 0;
@@ -87,16 +106,38 @@ var AdminApp = (function () {
 
   function renderAccounts() {
     var showEmpty = el("admin-show-empty").checked;
-    var visible = allAccounts.filter(function (r) { return showEmpty || Number(r.member_count) > 0; });
+    var filterFn = activeFilterKey && STAT_FILTERS[activeFilterKey];
+    var visible = allAccounts
+      .filter(function (r) { return showEmpty || Number(r.member_count) > 0; })
+      .filter(function (r) { return !filterFn || filterFn(r); });
     var body = el("admin-accounts-body");
 
     body.innerHTML = !visible.length
-      ? '<tr><td colspan="6" class="admin-empty">Sin cuentas todavía</td></tr>'
+      ? '<tr><td colspan="6" class="admin-empty">Sin cuentas para este filtro</td></tr>'
       : visible.map(accountRowHTML).join("");
 
     var emptyCount = allAccounts.length - allAccounts.filter(function (r) { return Number(r.member_count) > 0; }).length;
     el("admin-empty-count").textContent = emptyCount;
     el("admin-toggle-empty-wrap").hidden = emptyCount === 0;
+
+    var clearBtn = el("admin-clear-filter");
+    clearBtn.hidden = !activeFilterKey;
+  }
+
+  function wireStatFilters() {
+    el("admin-stats").addEventListener("click", function (e) {
+      var card = e.target.closest(".admin-stat-card");
+      if (!card) return;
+      var key = card.dataset.filterKey;
+      activeFilterKey = (key === "total" || key === activeFilterKey) ? null : key;
+      renderStats(lastStats);
+      renderAccounts();
+    });
+    el("admin-clear-filter").addEventListener("click", function () {
+      activeFilterKey = null;
+      renderStats(lastStats);
+      renderAccounts();
+    });
   }
 
   function loadDashboard() {
@@ -107,7 +148,8 @@ var AdminApp = (function () {
       var statsRes = results[0], accountsRes = results[1];
       if (statsRes.error) throw statsRes.error;
       if (accountsRes.error) throw accountsRes.error;
-      renderStats(statsRes.data && statsRes.data[0]);
+      lastStats = statsRes.data && statsRes.data[0];
+      renderStats(lastStats);
       allAccounts = accountsRes.data || [];
       renderAccounts();
       showDashboard();
@@ -158,6 +200,7 @@ var AdminApp = (function () {
     wireLogin();
     wireLogout();
     wireEmptyToggle();
+    wireStatFilters();
     // si ya iniciaste sesión en la app principal en este navegador,
     // supabase-js reutiliza esa misma sesión aquí.
     client.auth.getSession().then(function (res) {
