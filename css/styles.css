@@ -1091,6 +1091,20 @@ input{ font-family:inherit; }
   gap:6px;
 }
 .sync-status-text.ok{ color:var(--green-500); }
+
+.join-request-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:10px 0;
+  border-top:1px solid var(--border);
+}
+.join-request-row:first-of-type{ border-top:none; padding-top:4px; }
+.join-request-row .jr-name{ font-size:14px; font-weight:600; color:var(--text); }
+.join-request-row .jr-actions{ display:flex; gap:8px; }
+.join-request-row .jr-actions .btn{ padding:9px 16px; font-size:13px; }
 .sync-status-text.err{ color:var(--red-500); }
 
 .stat-list-row{

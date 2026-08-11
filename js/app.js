@@ -41,6 +41,10 @@ var App = (function () {
     return (list || []).filter(function (m) { return m.id !== s.userId; });
   }
 
+  function invalidateHouseholdMembers(code) {
+    delete membersCache[code];
+  }
+
   function ensureHouseholdMembersLoaded(s) {
     if (membersCache[s.code] || typeof Auth === "undefined" || !Storage.sync.isConfigured()) return;
     membersCache[s.code] = [];
@@ -196,7 +200,8 @@ var App = (function () {
 
   return {
     session: session, navigate: navigate, refresh: refresh, boot: boot, showSetup: showSetup, init: init, syncBackGuard: syncBackGuard,
-    householdMembers: householdMembers, ensureHouseholdMembersLoaded: ensureHouseholdMembersLoaded
+    householdMembers: householdMembers, ensureHouseholdMembersLoaded: ensureHouseholdMembersLoaded,
+    invalidateHouseholdMembers: invalidateHouseholdMembers
   };
 })();
 

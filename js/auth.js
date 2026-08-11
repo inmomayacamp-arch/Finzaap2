@@ -108,34 +108,85 @@ var Auth = (function () {
     client().auth.onAuthStateChange(cb);
   }
 
-  // Une el perfil del usuario actual al espacio compartido de otra
-  // persona a partir de SU código personal (invite_code).
-  //
-  // Pasa por la función join_household en la base de datos (en vez de
-  // leer profiles por invite_code y luego actualizar household_code
-  // desde el cliente) porque esas dos operaciones por separado se
-  // podían saltar: cualquiera podía leer el household_code de
-  // cualquier perfil y ponérselo al suyo directamente, sin conocer el
-  // invite_code real de nadie. La función corre en el servidor con
-  // permisos propios y es el único camino permitido para cambiar
-  // household_code (ver sql/security_hardening.sql).
-  function joinByCode(userId, inviteCode) {
-    var c = client();
-    return c.rpc("join_household", { p_invite_code: inviteCode })
-      .then(function (res) {
-        if (res.error) throw new Error(friendlyError(res.error));
-        var row = res.data && res.data[0];
-        if (!row) throw new Error("No encontramos ese código.");
-        return { household_code: row.household_code, name: row.name };
-      });
-  }
-
   // Devuelve el resto de perfiles que comparten el mismo household_code
   // (para mostrar con quién estás sincronizado: nombre + iniciales).
   function listHouseholdMembers(householdCode) {
     var c = client();
     return c.from("profiles").select("id,name").eq("household_code", householdCode)
       .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  }
+
+  // Pide unirte al espacio de otra persona a partir de SU código
+  // personal (invite_code) — esto YA NO une de inmediato, solo crea
+  // una solicitud pendiente que esa persona debe aceptar desde su
+  // Cuenta (ver accept_join_request). Corre en el servidor porque
+  // necesita buscar el perfil de alguien más por su invite_code, algo
+  // que las políticas normales de profiles no dejan hacer al cliente.
+  function requestJoin(inviteCode) {
+    var c = client();
+    return c.rpc("request_join", { p_invite_code: inviteCode })
+      .then(function (res) {
+        if (res.error) throw new Error(friendlyError(res.error));
+        var row = res.data && res.data[0];
+        if (!row) throw new Error("No encontramos ese código.");
+        return { targetName: row.target_name, status: row.status };
+      });
+  }
+
+  // Solicitudes pendientes que otras personas te enviaron con TU código.
+  function getIncomingJoinRequests(userId) {
+    var c = client();
+    return c.from("join_requests").select("id,requester_name,created_at")
+      .eq("target_id", userId).eq("status", "pending").order("created_at", { ascending: false })
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  }
+
+  // La solicitud más reciente que TÚ enviaste (para saber si sigue
+  // pendiente, si te aceptaron o si te rechazaron).
+  function getOutgoingJoinRequest(userId) {
+    var c = client();
+    return c.from("join_requests").select("id,target_name,status,created_at")
+      .eq("requester_id", userId).order("created_at", { ascending: false }).limit(1)
+      .then(function (res) { if (res.error) throw res.error; return (res.data && res.data[0]) || null; });
+  }
+
+  function acceptJoinRequest(requestId) {
+    var c = client();
+    return c.rpc("accept_join_request", { p_request_id: requestId })
+      .then(function (res) {
+        if (res.error) throw new Error(friendlyError(res.error));
+        var row = res.data && res.data[0];
+        if (!row) throw new Error("No se pudo aceptar la solicitud.");
+        return { householdCode: row.household_code, requesterName: row.requester_name };
+      });
+  }
+
+  function rejectJoinRequest(requestId) {
+    var c = client();
+    return c.rpc("reject_join_request", { p_request_id: requestId })
+      .then(function (res) { if (res.error) throw new Error(friendlyError(res.error)); });
+  }
+
+  // Borra una solicitud tuya ya resuelta (aceptada/rechazada) de la
+  // vista — las pendientes no se pueden borrar así, solo resolverse.
+  function dismissJoinRequest(requestId) {
+    var c = client();
+    return c.from("join_requests").delete().eq("id", requestId)
+      .then(function (res) { if (res.error) throw res.error; });
+  }
+
+  // Sale del espacio compartido y regresa tu perfil a tu propio
+  // espacio (tu invite_code de siempre). No borra ningún dato: lo que
+  // había en el espacio compartido sigue ahí para quien se quede.
+  function leaveHousehold() {
+    var c = client();
+    return c.rpc("leave_household")
+      .then(function (res) {
+        if (res.error) throw new Error(friendlyError(res.error));
+        var row = res.data && res.data[0];
+        if (!row) throw new Error("No se pudo salir de la cuenta compartida.");
+        return { householdCode: row.household_code };
+      });
   }
 
   return {
@@ -147,7 +198,13 @@ var Auth = (function () {
     sendPasswordReset: sendPasswordReset,
     updatePassword: updatePassword,
     onAuthEvent: onAuthEvent,
-    joinByCode: joinByCode,
-    listHouseholdMembers: listHouseholdMembers
+    listHouseholdMembers: listHouseholdMembers,
+    requestJoin: requestJoin,
+    getIncomingJoinRequests: getIncomingJoinRequests,
+    getOutgoingJoinRequest: getOutgoingJoinRequest,
+    acceptJoinRequest: acceptJoinRequest,
+    rejectJoinRequest: rejectJoinRequest,
+    dismissJoinRequest: dismissJoinRequest,
+    leaveHousehold: leaveHousehold
   };
 })();

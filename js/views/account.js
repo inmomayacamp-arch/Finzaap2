@@ -8,6 +8,56 @@ var AccountView = (function () {
 
   var emailBackfillAttempted = false;
 
+  // Solicitudes de sincronización: se cargan una vez y se invalidan
+  // (vuelven a pedirse) despues de aceptar/rechazar/enviar/salir.
+  var incomingRequestsCache = [];
+  var outgoingRequestCache = null;
+  var joinRequestsLoaded = false;
+  var joinRequestsLoading = false;
+
+  function invalidateJoinRequests() {
+    joinRequestsLoaded = false;
+  }
+
+  function ensureJoinRequestsLoaded(session) {
+    if (!Storage.sync.isConfigured() || typeof Auth === "undefined") return;
+    if (joinRequestsLoaded || joinRequestsLoading) return;
+    joinRequestsLoading = true;
+    Promise.all([
+      Auth.getIncomingJoinRequests(session.userId),
+      Auth.getOutgoingJoinRequest(session.userId)
+    ]).then(function (results) {
+      incomingRequestsCache = results[0] || [];
+      outgoingRequestCache = results[1] || null;
+      joinRequestsLoading = false;
+      joinRequestsLoaded = true;
+
+      // ya te aceptaron: mueve tu sesion a ese espacio compartido y
+      // limpia la solicitud, en vez de seguir mostrando "esperando".
+      if (outgoingRequestCache && outgoingRequestCache.status === "accepted") {
+        applyAcceptedSwitch(session, outgoingRequestCache);
+        return;
+      }
+      App.refresh();
+    }).catch(function () { joinRequestsLoading = false; });
+  }
+
+  function applyAcceptedSwitch(session, req) {
+    Auth.loadOrCreateProfile(session.userId, session.name).then(function (profile) {
+      var newSession = Object.assign({}, session, { code: profile.householdCode, inviteCode: profile.inviteCode });
+      Storage.setSession(newSession);
+      Storage.sync.unsubscribe();
+      Storage.ensureAccount(newSession.code);
+      return Storage.sync.pullAll(newSession.code).then(function () {
+        Storage.sync.subscribe(newSession.code, App.refresh);
+        return Auth.dismissJoinRequest(req.id).catch(function () {});
+      });
+    }).then(function () {
+      outgoingRequestCache = null;
+      App.refresh();
+    });
+  }
+
   function render(container) {
     var session = App.session();
 
@@ -26,6 +76,8 @@ var AccountView = (function () {
 
     App.ensureHouseholdMembersLoaded(session);
     var others = App.householdMembers(session);
+    ensureJoinRequestsLoaded(session);
+    var isShared = session.inviteCode && session.code !== session.inviteCode;
     var txs = Storage.transactions.list(code());
     var now = new Date();
     var key = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
@@ -93,19 +145,45 @@ var AccountView = (function () {
               '<div class="avatar-stack">' + others.map(function (m) { return '<span class="avatar avatar-sm" style="background:' + Utils.colorForAuthor(m.name) + '">' + Utils.initials(m.name) + '</span>'; }).join("") + '</div>' +
               '<span>Sincronizado con ' + others.map(function (m) { return Utils.escapeHtml(m.name); }).join(", ") + '</span>' +
             '</div>'
-          : (session.inviteCode && session.code !== session.inviteCode
+          : (isShared
               ? '<div class="sync-status-text ok" style="margin-top:4px">' + Icons.get("check", 14) + ' Conectado con otra cuenta (código ' + session.code + ')</div>'
               : '')) +
+        (isShared
+          ? '<button class="btn btn-danger-outline btn-pill" id="btn-leave-household" style="margin-top:12px">' + Icons.get("close", 14) + ' Dejar de compartir</button>'
+          : '') +
       '</div>' +
+
+      (incomingRequestsCache.length
+        ? '<div class="card">' +
+            '<div class="card-label-sm">' + Icons.get("users", 12) + ' Solicitudes para unirse a tu cuenta</div>' +
+            incomingRequestsCache.map(function (r) {
+              return (
+                '<div class="join-request-row">' +
+                  '<span class="jr-name">' + Utils.escapeHtml(r.requester_name) + '</span>' +
+                  '<div class="jr-actions">' +
+                    '<button class="btn btn-success btn-pill" data-accept-request="' + r.id + '">Aceptar</button>' +
+                    '<button class="btn btn-danger-outline btn-pill" data-reject-request="' + r.id + '">Rechazar</button>' +
+                  '</div>' +
+                '</div>'
+              );
+            }).join("") +
+          '</div>'
+        : '') +
 
       '<div class="card">' +
         '<div class="card-label-sm">' + Icons.get("repeat", 12) + ' Unirme a otra cuenta</div>' +
-        '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Escribe el código personal de alguien más para compartir su espacio financiero:</p>' +
-        '<div style="display:flex;gap:10px">' +
-          '<input type="text" id="input-join-code" class="input input-code" placeholder="XXXX-XXXX" maxlength="9" style="flex:1">' +
-          '<button class="btn btn-primary btn-pill" id="btn-join-submit">Unirme</button>' +
-        '</div>' +
-        '<p class="field-error" id="join-code-error" hidden></p>' +
+        (outgoingRequestCache && outgoingRequestCache.status === "pending"
+          ? '<p style="font-size:13px;color:var(--text-secondary);margin:6px 0 10px">Esperando que <strong>' + Utils.escapeHtml(outgoingRequestCache.target_name) + '</strong> confirme tu solicitud…</p>' +
+            '<button class="btn btn-secondary-outline btn-pill" id="btn-check-outgoing">Verificar</button>'
+          : outgoingRequestCache && outgoingRequestCache.status === "rejected"
+            ? '<p style="font-size:13px;color:var(--red-500);margin:6px 0 10px">' + Utils.escapeHtml(outgoingRequestCache.target_name) + ' rechazó tu solicitud.</p>' +
+              '<button class="btn btn-secondary-outline btn-pill" id="btn-dismiss-outgoing">Entendido</button>'
+            : '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Escribe el código personal de alguien más para pedir compartir su espacio financiero:</p>' +
+              '<div style="display:flex;gap:10px">' +
+                '<input type="text" id="input-join-code" class="input input-code" placeholder="XXXX-XXXX" maxlength="9" style="flex:1">' +
+                '<button class="btn btn-primary btn-pill" id="btn-join-submit">Solicitar</button>' +
+              '</div>' +
+              '<p class="field-error" id="join-code-error" hidden></p>') +
       '</div>' +
 
       '<div class="card">' +
@@ -226,17 +304,73 @@ var AccountView = (function () {
     });
 
     var joinInput = container.querySelector("#input-join-code");
-    joinInput.addEventListener("input", function () {
-      var pos = joinInput.selectionStart;
-      var before = joinInput.value.length;
-      joinInput.value = Utils.formatCode(joinInput.value);
-      var after = joinInput.value.length;
-      joinInput.setSelectionRange(pos + (after - before), pos + (after - before));
-      container.querySelector("#join-code-error").hidden = true;
+    if (joinInput) {
+      joinInput.addEventListener("input", function () {
+        var pos = joinInput.selectionStart;
+        var before = joinInput.value.length;
+        joinInput.value = Utils.formatCode(joinInput.value);
+        var after = joinInput.value.length;
+        joinInput.setSelectionRange(pos + (after - before), pos + (after - before));
+        container.querySelector("#join-code-error").hidden = true;
+      });
+      container.querySelector("#btn-join-submit").addEventListener("click", function () {
+        sendJoinRequest(container, session, joinInput.value);
+      });
+    }
+
+    var checkOutgoingBtn = container.querySelector("#btn-check-outgoing");
+    if (checkOutgoingBtn) {
+      checkOutgoingBtn.addEventListener("click", function () {
+        checkOutgoingBtn.textContent = "Verificando…";
+        checkOutgoingBtn.disabled = true;
+        invalidateJoinRequests();
+        ensureJoinRequestsLoaded(session);
+      });
+    }
+
+    var dismissOutgoingBtn = container.querySelector("#btn-dismiss-outgoing");
+    if (dismissOutgoingBtn) {
+      dismissOutgoingBtn.addEventListener("click", function () {
+        Auth.dismissJoinRequest(outgoingRequestCache.id).then(function () {
+          outgoingRequestCache = null;
+          App.refresh();
+        });
+      });
+    }
+
+    container.querySelectorAll("[data-accept-request]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        btn.disabled = true;
+        Auth.acceptJoinRequest(btn.getAttribute("data-accept-request")).then(function () {
+          invalidateJoinRequests();
+          App.invalidateHouseholdMembers(session.code);
+          App.refresh();
+        }).catch(function (err) {
+          alert(err.message || String(err));
+          btn.disabled = false;
+        });
+      });
     });
-    container.querySelector("#btn-join-submit").addEventListener("click", function () {
-      joinHousehold(container, session, joinInput.value);
+
+    container.querySelectorAll("[data-reject-request]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        btn.disabled = true;
+        Auth.rejectJoinRequest(btn.getAttribute("data-reject-request")).then(function () {
+          invalidateJoinRequests();
+          App.refresh();
+        }).catch(function (err) {
+          alert(err.message || String(err));
+          btn.disabled = false;
+        });
+      });
     });
+
+    var leaveBtn = container.querySelector("#btn-leave-household");
+    if (leaveBtn) {
+      leaveBtn.addEventListener("click", function () {
+        leaveHousehold(session);
+      });
+    }
 
     container.querySelector("#btn-logout").addEventListener("click", function () {
       if (confirm("¿Cerrar sesión? Tus datos siguen guardados en la nube; vuelve a entrar con tu correo cuando quieras.")) {
@@ -295,7 +429,7 @@ var AccountView = (function () {
     });
   }
 
-  function joinHousehold(container, session, rawCode) {
+  function sendJoinRequest(container, session, rawCode) {
     var code = Utils.normalizeCode(rawCode);
     var errorEl = container.querySelector("#join-code-error");
     if (code.length !== 8) {
@@ -311,23 +445,35 @@ var AccountView = (function () {
     }
     var btn = container.querySelector("#btn-join-submit");
     var original = btn.textContent;
-    btn.textContent = "Uniendo…";
+    btn.textContent = "Enviando…";
     btn.disabled = true;
 
-    Auth.joinByCode(session.userId, formatted).then(function (target) {
-      var newSession = Object.assign({}, session, { code: target.household_code });
-      Storage.setSession(newSession);
-      Storage.sync.unsubscribe();
-      Storage.ensureAccount(newSession.code);
-      return Storage.sync.pullAll(newSession.code).then(function () {
-        Storage.sync.subscribe(newSession.code, App.refresh);
-        App.refresh();
-      });
+    Auth.requestJoin(formatted).then(function () {
+      invalidateJoinRequests();
+      App.refresh();
     }).catch(function (err) {
       btn.textContent = original;
       btn.disabled = false;
       errorEl.textContent = err.message || String(err);
       errorEl.hidden = false;
+    });
+  }
+
+  function leaveHousehold(session) {
+    if (!confirm("¿Dejar de compartir esta cuenta? Nada se borra: tú regresas a tu propio espacio y la otra persona sigue viendo los datos compartidos igual que hasta ahora.")) return;
+
+    Auth.leaveHousehold().then(function (res) {
+      var newSession = Object.assign({}, session, { code: res.householdCode });
+      Storage.setSession(newSession);
+      Storage.sync.unsubscribe();
+      Storage.ensureAccount(newSession.code);
+      return Storage.sync.pullAll(newSession.code).then(function () {
+        Storage.sync.subscribe(newSession.code, App.refresh);
+        invalidateJoinRequests();
+        App.refresh();
+      });
+    }).catch(function (err) {
+      alert(err.message || String(err));
     });
   }
 
