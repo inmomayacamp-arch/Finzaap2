@@ -8,6 +8,11 @@
 -- de esto.
 -- =========================================================
 
+-- Postgres no deja cambiar las columnas de una función existente con
+-- CREATE OR REPLACE -- hay que borrarla primero.
+drop function if exists admin_stats();
+drop function if exists admin_list_accounts();
+
 create or replace function admin_stats()
 returns table(
   total_accounts bigint,
