@@ -560,10 +560,23 @@ var ReportView = (function () {
     var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
 
     fontsReady.then(function () {
+      // #print-report vive dentro de .print-clip (tamaño 0 en pantalla,
+      // a propósito para que no se vea mientras se genera el PDF).
+      // html2canvas a veces detecta ese 0 como el ancho "visible" real y
+      // recorta el contenido -- se le pasa el tamaño real medido del
+      // propio elemento (scrollWidth/Height no los afecta el recorte del
+      // ancestro) para que ignore esa pista falsa.
       return html2pdf().set({
         margin: 10,
         filename: filename,
-        html2canvas: { scale: 2, backgroundColor: "#ffffff" },
+        html2canvas: {
+          scale: 2,
+          backgroundColor: "#ffffff",
+          width: printEl.scrollWidth,
+          height: printEl.scrollHeight,
+          windowWidth: printEl.scrollWidth,
+          windowHeight: printEl.scrollHeight
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
       }).from(printEl).save();
     }).then(function () {
