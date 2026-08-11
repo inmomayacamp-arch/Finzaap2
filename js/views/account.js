@@ -91,6 +91,44 @@ var AccountView = (function () {
     }).catch(function () { pushLoading = false; });
   }
 
+  // "quién registró qué": cada movimiento ya guarda su autor (se ve en
+  // cada fila de Inicio/Reporte) -- esto solo junta un resumen por
+  // persona para tener una vista rápida, sin tener que revisar
+  // movimiento por movimiento. Solo aplica si la cuenta es compartida.
+  function activityCardHTML(session, others, txs) {
+    if (!others.length) return "";
+    var members = [{ name: session.name }].concat(others);
+    var now = new Date();
+    var monthKey = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+
+    var rows = members.map(function (m) {
+      var mine = txs.filter(function (t) { return t.author === m.name; });
+      var thisMonth = mine.filter(function (t) { return t.date.slice(0, 7) === monthKey; }).length;
+      var last = mine.slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); })[0];
+      return { name: m.name, thisMonth: thisMonth, last: last };
+    });
+
+    return (
+      '<div class="card">' +
+        '<div class="card-label-sm">' + Icons.get("users", 12) + ' Actividad del hogar</div>' +
+        rows.map(function (r) {
+          return (
+            '<div class="activity-row">' +
+              '<span class="avatar avatar-sm" style="background:' + Utils.colorForAuthor(r.name) + '">' + Utils.initials(r.name) + '</span>' +
+              '<div class="activity-info">' +
+                '<div class="activity-name">' + Utils.escapeHtml(r.name) + '</div>' +
+                '<div class="activity-meta">' +
+                  r.thisMonth + ' movimiento' + (r.thisMonth === 1 ? '' : 's') + ' este mes' +
+                  (r.last ? ' · último: ' + Utils.escapeHtml(r.last.description || (r.last.type === 'ingreso' ? 'Ingreso' : 'Egreso')) + ' (' + Utils.shortDate(r.last.date) + ')' : '') +
+                '</div>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join("") +
+      '</div>'
+    );
+  }
+
   function render(container) {
     var session = App.session();
 
@@ -197,6 +235,8 @@ var AccountView = (function () {
           ? '<button class="btn btn-danger-outline btn-pill" id="btn-leave-household" style="margin-top:12px">' + Icons.get("close", 14) + ' Dejar de compartir</button>'
           : '') +
       '</div>' +
+
+      activityCardHTML(session, others, txs) +
 
       (incomingRequestsCache.length
         ? '<div class="card">' +

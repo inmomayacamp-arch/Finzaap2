@@ -9,6 +9,15 @@ var ReportView = (function () {
   var typeFilter = "todo"; // 'todo' | 'ingresos' | 'egresos'
   var showAllTx = false;
   var TX_PREVIEW_COUNT = 7;
+  var searchQuery = "";
+
+  // mismas categorías sugeridas de egresos que en el formulario de
+  // movimientos (js/views/home.js) -- duplicadas aquí a propósito, es
+  // una lista corta y evita acoplar los dos módulos solo por esto.
+  var BUDGET_CATEGORY_SUGGESTIONS = [
+    "Alimentación", "Transporte", "Vivienda", "Servicios", "Salud",
+    "Entretenimiento", "Ropa", "Educación", "Deudas", "General"
+  ];
 
   function code() { return App.session().code; }
 
@@ -84,6 +93,7 @@ var ReportView = (function () {
 
     var savingsCategories = Storage.savingsCategories.list(code());
     var savingsDeposits = Storage.savingsDeposits.list(code());
+    var budgets = Storage.budgets.list(code());
 
     var sorted = filtered.slice().sort(function (a, b) {
       if (a.date !== b.date) return a.date < b.date ? 1 : -1;
@@ -127,22 +137,35 @@ var ReportView = (function () {
       categoryChartCard(inPeriod) +
       methodDistributionCardHTML(inPeriod) +
       topExpensesCardHTML(inPeriod) +
-      savingsOverviewCardHTML(savingsCategories, savingsDeposits);
+      savingsOverviewCardHTML(savingsCategories, savingsDeposits) +
+      budgetsCardHTML(budgets, all);
 
-    attachEvents(container, inPeriod, range, savingsCategories, savingsDeposits);
+    attachEvents(container, inPeriod, range, savingsCategories, savingsDeposits, budgets);
   }
 
   function transactionsCardHTML(sorted) {
-    var visible = showAllTx ? sorted : sorted.slice(0, TX_PREVIEW_COUNT);
-    var hasMore = sorted.length > TX_PREVIEW_COUNT;
+    var q = searchQuery.trim().toLowerCase();
+    var matches = !q ? sorted : sorted.filter(function (t) {
+      return (t.description || "").toLowerCase().indexOf(q) > -1 ||
+        (t.category || "").toLowerCase().indexOf(q) > -1;
+    });
+    // buscando, se muestran todos los resultados de una vez -- no tiene
+    // caso limitarlos a 7 si la persona ya filtró lo que busca.
+    var visible = (showAllTx || q) ? matches : matches.slice(0, TX_PREVIEW_COUNT);
+    var hasMore = !q && matches.length > TX_PREVIEW_COUNT;
 
     return (
       '<div class="card">' +
         '<div class="tx-list-head">' +
-          '<div class="section-title">' + sorted.length + ' transacci' + (sorted.length === 1 ? "ón" : "ones") + '</div>' +
-          (hasMore ? '<button type="button" id="btn-toggle-all-tx" class="btn-link">' + (showAllTx ? "Ver menos" : "Ver todas (" + sorted.length + ")") + '</button>' : "") +
+          '<div class="section-title">' + matches.length + ' transacci' + (matches.length === 1 ? "ón" : "ones") + '</div>' +
+          (hasMore ? '<button type="button" id="btn-toggle-all-tx" class="btn-link">' + (showAllTx ? "Ver menos" : "Ver todas (" + matches.length + ")") + '</button>' : "") +
         '</div>' +
-        (visible.length ? '<div class="tx-list">' + visible.map(HomeView.txRowHTML).join("") + '</div>' : HomeView.emptyStateHTML("📭", "Sin transacciones en este período")) +
+        '<div class="field-textline" style="margin-bottom:10px">' +
+          '<input type="text" id="tx-search" class="plain-input-underline" placeholder="Buscar por descripción o categoría…" value="' + Utils.escapeHtml(searchQuery) + '">' +
+        '</div>' +
+        (visible.length
+          ? '<div class="tx-list">' + visible.map(HomeView.txRowHTML).join("") + '</div>'
+          : HomeView.emptyStateHTML("📭", q ? "Sin resultados para \"" + Utils.escapeHtml(searchQuery) + "\"" : "Sin transacciones en este período")) +
       '</div>'
     );
   }
@@ -433,7 +456,107 @@ var ReportView = (function () {
     );
   }
 
-  function attachEvents(container, inPeriod, range, savingsCategories, savingsDeposits) {
+  // Los presupuestos son mensuales por definición -- siempre se miden
+  // contra el mes calendario actual, sin importar qué período (día/
+  // semana/mes) tenga elegido el Reporte en ese momento.
+  function currentMonthKey() {
+    var now = new Date();
+    return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+  }
+
+  function budgetProgress(budget, all) {
+    var monthKey = currentMonthKey();
+    var spent = all
+      .filter(function (t) { return t.type === "egreso" && (t.category || "General") === budget.category && t.date.slice(0, 7) === monthKey; })
+      .reduce(function (s, t) { return s + t.amount; }, 0);
+    var pct = budget.monthlyLimit > 0 ? Math.round((spent / budget.monthlyLimit) * 100) : 0;
+    var status = pct >= 100 ? "over" : pct >= 80 ? "warning" : "ok";
+    return { spent: spent, pct: pct, status: status };
+  }
+
+  function budgetsCardHTML(budgets, all) {
+    return (
+      '<div class="card">' +
+        '<div class="tx-list-head">' +
+          '<div class="section-title">Presupuestos por categoría</div>' +
+          '<button type="button" id="btn-add-budget" class="btn-link">+ Agregar</button>' +
+        '</div>' +
+        (budgets.length
+          ? budgets.map(function (b) {
+              var p = budgetProgress(b, all);
+              return (
+                '<div class="budget-row" data-budget-id="' + b.id + '">' +
+                  '<div class="budget-row-head">' +
+                    '<span class="budget-cat">' + Icons.categoryEmoji(b.category) + " " + Utils.escapeHtml(b.category) + '</span>' +
+                    '<span class="budget-amounts">' + Utils.formatMoney(p.spent) + ' <span class="mlr-sub">de ' + Utils.formatMoney(b.monthlyLimit) + '</span></span>' +
+                  '</div>' +
+                  '<div class="progress-track"><div class="progress-fill budget-fill-' + p.status + '" style="width:' + Utils.clamp(p.pct, 0, 100) + '%"></div></div>' +
+                '</div>'
+              );
+            }).join("")
+          : '<p style="font-size:13px;color:var(--text-muted);margin:4px 0 0">Ponle un límite mensual a una categoría para que te avisemos si te acercas o te pasas.</p>') +
+      '</div>'
+    );
+  }
+
+  function openBudgetModal(existing, categoriesInUse) {
+    var isEdit = !!existing;
+    var takenCategories = categoriesInUse.filter(function (c) { return !isEdit || c !== existing.category; });
+    var options = Array.from(new Set(BUDGET_CATEGORY_SUGGESTIONS.concat(categoriesInUse)))
+      .filter(function (c) { return takenCategories.indexOf(c) === -1; })
+      .sort();
+
+    var html =
+      Modals.headerHTML({
+        icon: "report", theme: "expense",
+        title: isEdit ? "Editar presupuesto" : "Nuevo presupuesto",
+        sub: isEdit ? "Cambia el límite mensual" : "Ponle un límite mensual a una categoría"
+      }) +
+      (isEdit
+        ? '<div class="field-group"><label class="field-label">Categoría</label><p style="font-size:14px;font-weight:600;margin:0">' + Icons.categoryEmoji(existing.category) + " " + Utils.escapeHtml(existing.category) + '</p></div>'
+        : '<div class="field-group"><label class="field-label">Categoría</label>' +
+            '<select id="f-budget-category" class="input">' +
+              (options.length ? options.map(function (c) { return '<option value="' + Utils.escapeHtml(c) + '">' + Utils.escapeHtml(c) + '</option>'; }).join("") : '<option value="">Ya tienes presupuesto en todas tus categorías</option>') +
+            '</select>' +
+          '</div>') +
+      '<div class="field-group"><label class="field-label">Límite mensual (MXN)</label>' +
+        '<div class="amount-field expense"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-budget-limit" placeholder="0" min="0" step="0.01" value="' + (isEdit ? existing.monthlyLimit : "") + '"></div>' +
+      '</div>' +
+      (isEdit
+        ? '<div class="detail-actions">' +
+            '<button class="btn btn-danger-outline" id="btn-delete-budget">Eliminar</button>' +
+            '<button class="btn btn-danger-solid" id="f-submit">Guardar cambios</button>' +
+          '</div>'
+        : '<button class="btn btn-danger-solid modal-footer-btn" id="f-submit" ' + (options.length ? "" : "disabled") + '>Crear presupuesto</button>');
+
+    Modals.open({
+      html: html,
+      onMount: function (sheet) {
+        sheet.querySelector("#f-submit").addEventListener("click", function () {
+          var limit = parseFloat(sheet.querySelector("#f-budget-limit").value);
+          if (!limit || limit <= 0) { sheet.querySelector("#f-budget-limit").focus(); return; }
+          if (isEdit) {
+            Storage.budgets.update(code(), existing.id, { monthlyLimit: limit, updatedAt: Date.now() });
+          } else {
+            var category = sheet.querySelector("#f-budget-category").value;
+            if (!category) return;
+            Storage.budgets.add(code(), { id: Utils.uid(), category: category, monthlyLimit: limit, notifiedPct: 0, notifiedMonth: null, createdAt: Date.now() });
+          }
+          Modals.close();
+          App.refresh();
+        });
+        if (isEdit) {
+          sheet.querySelector("#btn-delete-budget").addEventListener("click", function () {
+            Storage.budgets.remove(code(), existing.id);
+            Modals.close();
+            App.refresh();
+          });
+        }
+      }
+    });
+  }
+
+  function attachEvents(container, inPeriod, range, savingsCategories, savingsDeposits, budgets) {
     container.querySelectorAll("[data-period-type]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         periodType = btn.getAttribute("data-period-type");
@@ -460,10 +583,39 @@ var ReportView = (function () {
       });
     }
 
+    var searchInput = container.querySelector("#tx-search");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        searchQuery = searchInput.value;
+        var caret = searchInput.selectionStart;
+        App.refresh();
+        // App.refresh() reconstruye todo el HTML del contenedor -- sin
+        // esto, cada tecla que escribes le quita el foco al campo.
+        var freshInput = document.getElementById("tx-search");
+        if (freshInput) {
+          freshInput.focus();
+          freshInput.setSelectionRange(caret, caret);
+        }
+      });
+    }
+
     container.querySelectorAll(".tx-row[data-tx-id]").forEach(function (row) {
       row.addEventListener("click", function () {
         var tx = Storage.transactions.list(code()).find(function (t) { return t.id === row.getAttribute("data-tx-id"); });
         if (tx) HomeView.openTransactionDetailModal(tx);
+      });
+    });
+
+    var addBudgetBtn = container.querySelector("#btn-add-budget");
+    if (addBudgetBtn) {
+      addBudgetBtn.addEventListener("click", function () {
+        openBudgetModal(null, budgets.map(function (b) { return b.category; }));
+      });
+    }
+    container.querySelectorAll(".budget-row[data-budget-id]").forEach(function (row) {
+      row.addEventListener("click", function () {
+        var budget = budgets.find(function (b) { return b.id === row.getAttribute("data-budget-id"); });
+        if (budget) openBudgetModal(budget, budgets.map(function (b) { return b.category; }));
       });
     });
 

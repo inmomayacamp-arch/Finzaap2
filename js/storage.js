@@ -16,7 +16,8 @@ var Storage = (function () {
 
   var ENTITIES = [
     "transactions", "recurringTransactions", "receivables", "payables",
-    "recurringReceivables", "recurringPayables", "savingsCategories", "savingsDeposits"
+    "recurringReceivables", "recurringPayables", "savingsCategories", "savingsDeposits",
+    "budgets"
   ];
 
   function readJSON(key, fallback) {
@@ -329,6 +330,7 @@ var Storage = (function () {
     recurringPayables: entityApi("recurringPayables"),
     savingsCategories: entityApi("savingsCategories"),
     savingsDeposits: entityApi("savingsDeposits"),
+    budgets: entityApi("budgets"),
 
     syncStatus: function () { return Sync.getStatus(); },
     sync: Sync

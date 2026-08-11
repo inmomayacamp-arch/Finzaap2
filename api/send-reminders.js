@@ -99,6 +99,69 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // Presupuestos: a diferencia de los pagos por vencer (que se avisan
+  // todos los dias mientras sigan pendientes, sin problema porque se
+  // resuelven solos), un presupuesto pasado se queda pasado el resto
+  // del mes -- avisar cada dia seria machacar. notified_pct/
+  // notified_month en cada fila de `budgets` recuerdan el umbral (80%
+  // o 100%) ya avisado ESTE mes, para avisar una sola vez por umbral.
+  // Se revisa una vez por hogar (no por persona) para no duplicar el
+  // aviso ni la escritura cuando la cuenta es compartida.
+  var monthKey = todayISO.slice(0, 7);
+  var monthStartISO = monthKey + "-01";
+  var profilesByAccount = {};
+  profiles.forEach(function (p) {
+    var acc = p.household_code;
+    if (!profilesByAccount[acc]) profilesByAccount[acc] = [];
+    profilesByAccount[acc].push(p);
+  });
+
+  var accountCodes = Object.keys(profilesByAccount);
+  for (var a = 0; a < accountCodes.length; a++) {
+    var accCode = accountCodes[a];
+    var members = profilesByAccount[accCode];
+
+    var { data: accBudgets } = await supabase
+      .from("budgets")
+      .select("id, category, monthly_limit, notified_pct, notified_month")
+      .eq("account_code", accCode);
+    if (!accBudgets || !accBudgets.length) continue;
+
+    var { data: monthExpenses } = await supabase
+      .from("transactions")
+      .select("category, amount")
+      .eq("account_code", accCode)
+      .eq("type", "egreso")
+      .gte("date", monthStartISO);
+
+    var spentByCategory = {};
+    (monthExpenses || []).forEach(function (t) {
+      var cat = t.category || "General";
+      spentByCategory[cat] = (spentByCategory[cat] || 0) + Number(t.amount);
+    });
+
+    for (var b = 0; b < accBudgets.length; b++) {
+      var budget = accBudgets[b];
+      var spent = spentByCategory[budget.category] || 0;
+      var pct = budget.monthly_limit > 0 ? Math.round((spent / budget.monthly_limit) * 100) : 0;
+      var threshold = pct >= 100 ? 100 : pct >= 80 ? 80 : 0;
+      var notifiedThisMonth = budget.notified_month === monthKey ? (budget.notified_pct || 0) : 0;
+
+      if (threshold > 0 && threshold > notifiedThisMonth) {
+        var title = threshold >= 100 ? "Presupuesto superado" : "Ya casi llegas a tu límite";
+        var body = threshold >= 100
+          ? "Ya pasaste tu presupuesto de " + budget.category + " este mes ($" + Math.round(spent) + " de $" + Math.round(budget.monthly_limit) + ")."
+          : "Vas en " + pct + "% de tu presupuesto de " + budget.category + " este mes.";
+
+        members.forEach(function (m) {
+          notifications.push({ user_id: m.id, title: title, body: body });
+        });
+
+        await supabase.from("budgets").update({ notified_pct: threshold, notified_month: monthKey }).eq("id", budget.id);
+      }
+    }
+  }
+
   var sent = 0, failed = 0, removed = 0;
   for (var j = 0; j < notifications.length; j++) {
     var n = notifications[j];
