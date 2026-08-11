@@ -168,8 +168,10 @@ var App = (function () {
       var banner = document.getElementById("readonly-banner");
       if (!banner) return;
       if (state && !state.hasAccess) {
-        document.getElementById("readonly-banner-text").textContent =
-          "Tu prueba terminó — modo de solo lectura hasta que actives un plan.";
+        var isPastDue = state.sub && state.sub.status === "past_due";
+        document.getElementById("readonly-banner-text").textContent = isPastDue
+          ? "No pudimos cobrar tu último pago — actualiza tu método de pago para seguir editando."
+          : "Tu prueba terminó — modo de solo lectura hasta que actives un plan.";
         banner.hidden = false;
       } else {
         banner.hidden = true;

@@ -10,6 +10,7 @@
 
 var Stripe = require("stripe");
 var { createClient } = require("@supabase/supabase-js");
+var webpush = require("web-push");
 var { readRawBody } = require("./_lib/body");
 var { sendJson } = require("./_lib/http");
 
@@ -74,6 +75,54 @@ module.exports = async function handler(req, res) {
     }, { onConflict: "household_code" });
   }
 
+  // Avisa por push que la tarjeta fue rechazada. El bloqueo de acceso
+  // ya lo aplica has_active_access() cuando llegue (por separado) el
+  // customer.subscription.updated con status "past_due" -- esto solo
+  // le explica al usuario por qué, para que no piense que la app se
+  // rompió.
+  async function notifyPaymentFailed(invoice) {
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+
+    var { data: sub } = await supabase
+      .from("subscriptions")
+      .select("household_code")
+      .eq("stripe_customer_id", invoice.customer)
+      .maybeSingle();
+    var householdCode = sub && sub.household_code;
+    if (!householdCode) return;
+
+    var { data: profiles } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("household_code", householdCode);
+    if (!profiles || !profiles.length) return;
+
+    var userIds = profiles.map(function (p) { return p.id; });
+    var { data: pushSubs } = await supabase
+      .from("push_subscriptions")
+      .select("endpoint, p256dh, auth")
+      .in("user_id", userIds);
+    if (!pushSubs || !pushSubs.length) return;
+
+    webpush.setVapidDetails("mailto:hola@finzapp.com.mx", process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+    var payload = JSON.stringify({
+      title: "Tu pago no se pudo procesar",
+      body: "Actualiza tu método de pago en FinzApp para no perder el acceso.",
+      url: "/"
+    });
+
+    for (var i = 0; i < pushSubs.length; i++) {
+      var s = pushSubs[i];
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          await supabase.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
+        }
+      }
+    }
+  }
+
   try {
     if (event.type === "checkout.session.completed") {
       var session = event.data.object;
@@ -88,6 +137,8 @@ module.exports = async function handler(req, res) {
       event.type === "customer.subscription.deleted"
     ) {
       await upsertFromSubscription(event.data.object);
+    } else if (event.type === "invoice.payment_failed") {
+      await notifyPaymentFailed(event.data.object);
     }
 
     sendJson(res, 200, { received: true });
