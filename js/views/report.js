@@ -484,7 +484,7 @@ var ReportView = (function () {
     });
 
     return (
-      '<div class="pr-savings">' +
+      '<div class="pr-section accent-amber">' +
         '<h2>Ahorro</h2>' +
         '<p class="pr-savings-note">Aportado a metas en este período: ' + Utils.formatMoney(periodNet) + '</p>' +
         '<table class="pr-savings-table"><thead><tr><th>Meta</th><th>Ahorrado</th><th>Objetivo</th><th>Avance</th></tr></thead><tbody>' +
@@ -497,13 +497,35 @@ var ReportView = (function () {
     );
   }
 
+  function pdfTxSectionHTML(title, accent, txRows) {
+    if (!txRows.length) return "";
+    return (
+      '<div class="pr-section accent-' + accent + '">' +
+        '<h2>' + title + ' <span class="pr-section-count">(' + txRows.length + ')</span></h2>' +
+        '<table class="pr-tx-table"><thead><tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Método</th><th>Monto</th></tr></thead><tbody>' +
+          txRows.map(function (t) {
+            return '<tr><td>' + t.date + '</td><td>' + Utils.escapeHtml(t.description) + '</td><td>' + Utils.escapeHtml(t.category || "General") +
+              '</td><td>' + (t.method === "tarjeta" ? "Tarjeta" : "Efectivo") +
+              '</td><td>' + Utils.formatMoney(t.amount) + '</td></tr>';
+          }).join("") +
+        '</tbody></table>' +
+      '</div>'
+    );
+  }
+
   function exportPDF(inPeriod, range, btn, savingsCategories, savingsDeposits) {
     var income = inPeriod.filter(function (t) { return t.type === "ingreso"; }).reduce(function (s, t) { return s + t.amount; }, 0);
     var expense = inPeriod.filter(function (t) { return t.type === "egreso"; }).reduce(function (s, t) { return s + t.amount; }, 0);
     var balance = income - expense;
-    var rows = inPeriod.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    var byDateAsc = function (a, b) { return a.date < b.date ? -1 : 1; };
+    var incomeRows = inPeriod.filter(function (t) { return t.type === "ingreso"; }).sort(byDateAsc);
+    var expenseRows = inPeriod.filter(function (t) { return t.type === "egreso"; }).sort(byDateAsc);
 
     var html =
+      '<div class="pr-brand">' +
+        '<div class="pr-logo"><span class="dot filled"></span><span class="dot ring"></span></div>' +
+        '<span class="pr-brand-text">FinzApp</span>' +
+      '</div>' +
       '<div class="pr-head">' +
         '<h1>Reporte financiero — ' + periodLabel(range) + '</h1>' +
         '<p>Generado el ' + Utils.todayISO() + '</p>' +
@@ -513,13 +535,8 @@ var ReportView = (function () {
         '<div><div class="pr-label">Egresos</div><div class="pr-value">' + Utils.formatMoney(expense) + '</div></div>' +
         '<div><div class="pr-label">Balance</div><div class="pr-value">' + Utils.formatMoney(balance) + '</div></div>' +
       '</div>' +
-      '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Método</th><th>Tipo</th><th>Monto</th></tr></thead><tbody>' +
-        rows.map(function (t) {
-          return '<tr><td>' + t.date + '</td><td>' + Utils.escapeHtml(t.description) + '</td><td>' + Utils.escapeHtml(t.category || "General") +
-            '</td><td>' + (t.method === "tarjeta" ? "Tarjeta" : "Efectivo") + '</td><td>' + (t.type === "ingreso" ? "Ingreso" : "Egreso") +
-            '</td><td>' + (t.type === "ingreso" ? "+" : "-") + Utils.formatMoney(t.amount) + '</td></tr>';
-        }).join("") +
-      '</tbody></table>' +
+      pdfTxSectionHTML("Ingresos", "green", incomeRows) +
+      pdfTxSectionHTML("Egresos", "red", expenseRows) +
       savingsPdfSectionHTML(savingsCategories, savingsDeposits, range);
 
     var printEl = document.getElementById("print-report");
