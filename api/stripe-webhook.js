@@ -58,6 +58,10 @@ module.exports = async function handler(req, res) {
 
     var item = sub.items && sub.items.data && sub.items.data[0];
     var priceId = item && item.price && item.price.id;
+    // Stripe movio current_period_end del objeto Subscription al item
+    // en versiones nuevas de la API (facturacion flexible); probamos
+    // ambos lugares para que funcione sin importar la version en uso.
+    var periodEnd = sub.current_period_end || (item && item.current_period_end);
 
     await supabase.from("subscriptions").upsert({
       household_code: householdCode,
@@ -65,7 +69,7 @@ module.exports = async function handler(req, res) {
       stripe_subscription_id: sub.id,
       status: sub.status,
       plan: planFromPriceId(priceId),
-      current_period_end: sub.current_period_end ? sub.current_period_end * 1000 : null,
+      current_period_end: periodEnd ? periodEnd * 1000 : null,
       updated_at: Date.now()
     }, { onConflict: "household_code" });
   }
