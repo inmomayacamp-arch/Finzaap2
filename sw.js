@@ -7,7 +7,7 @@
    app, no los datos del usuario.
    ========================================================= */
 
-var CACHE_NAME = "finanza-shell-v2";
+var CACHE_NAME = "finanza-shell-v3";
 
 var SHELL_FILES = [
   "/",
@@ -16,6 +16,7 @@ var SHELL_FILES = [
   "/css/styles.css",
   "/js/install.js",
   "/js/monitoring.js",
+  "/js/push.js",
   "/js/utils.js",
   "/js/icons.js",
   "/js/storage.js",
@@ -94,4 +95,39 @@ self.addEventListener("fetch", function (event) {
     );
   }
   // llamadas a supabase.co: se dejan pasar directo a la red, sin cachear.
+});
+
+// ---------------------------------------------------------
+// Recordatorios push: el servidor (api/send-reminders.js, via
+// Vercel Cron) manda el aviso; aqui solo se muestra y se abre la
+// app al tocarlo.
+// ---------------------------------------------------------
+
+self.addEventListener("push", function (event) {
+  var data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {}
+
+  var title = data.title || "FinzApp";
+  var options = {
+    body: data.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { url: data.url || "/" }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  var targetUrl = (event.notification.data && event.notification.data.url) || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        if ("focus" in list[i]) return list[i].focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
 });

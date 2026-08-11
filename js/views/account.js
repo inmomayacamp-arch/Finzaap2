@@ -58,6 +58,21 @@ var AccountView = (function () {
     });
   }
 
+  // Estado de las notificaciones push: se carga una vez y se
+  // refresca la UI cuando llega.
+  var pushSubscribed = null; // null = aun no se sabe
+  var pushLoading = false;
+
+  function ensurePushStateLoaded() {
+    if (typeof Push === "undefined" || !Push.isSupported() || pushSubscribed !== null || pushLoading) return;
+    pushLoading = true;
+    Push.isSubscribed().then(function (yes) {
+      pushSubscribed = yes;
+      pushLoading = false;
+      App.refresh();
+    }).catch(function () { pushLoading = false; });
+  }
+
   function render(container) {
     var session = App.session();
 
@@ -77,7 +92,9 @@ var AccountView = (function () {
     App.ensureHouseholdMembersLoaded(session);
     var others = App.householdMembers(session);
     ensureJoinRequestsLoaded(session);
+    ensurePushStateLoaded();
     var isShared = session.inviteCode && session.code !== session.inviteCode;
+    var pushSupported = typeof Push !== "undefined" && Push.isSupported();
     var txs = Storage.transactions.list(code());
     var now = new Date();
     var key = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
@@ -203,6 +220,17 @@ var AccountView = (function () {
         statRow("arrowUpRight", "Flujo esperado", Utils.formatMoney(expectedFlow)) +
       '</div>' +
 
+      (pushSupported
+        ? '<div class="card">' +
+            '<div class="card-label-sm">' + Icons.get("bell", 12) + ' Recordatorios</div>' +
+            '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">Avisos de pagos próximos, si no has registrado gastos hoy, y tu reporte semanal.</p>' +
+            (pushSubscribed
+              ? '<button class="btn btn-secondary-outline" id="btn-toggle-push">' + Icons.get("close", 15) + ' Desactivar recordatorios</button>'
+              : '<button class="btn btn-primary" id="btn-toggle-push">' + Icons.get("bell", 15) + ' Activar recordatorios</button>') +
+            '<p class="field-error" id="push-error" hidden></p>' +
+          '</div>'
+        : '') +
+
       '<div class="card">' +
         '<div class="card-label-sm">' + Icons.get("mail", 12) + ' Soporte</div>' +
         '<p style="font-size:13px;color:var(--text-muted);margin:6px 0 12px">¿Algo falló o tienes una duda? Escríbenos y te respondemos por correo.</p>' +
@@ -270,6 +298,25 @@ var AccountView = (function () {
     if (installBtn) {
       installBtn.addEventListener("click", function () {
         InstallPrompt.prompt().then(function () { App.refresh(); });
+      });
+    }
+
+    var pushBtn = container.querySelector("#btn-toggle-push");
+    if (pushBtn) {
+      pushBtn.addEventListener("click", function () {
+        var errorEl = container.querySelector("#push-error");
+        errorEl.hidden = true;
+        pushBtn.disabled = true;
+
+        var action = pushSubscribed ? Push.unsubscribe() : Push.subscribe(session.userId);
+        action.then(function () {
+          pushSubscribed = !pushSubscribed;
+          App.refresh();
+        }).catch(function (err) {
+          pushBtn.disabled = false;
+          errorEl.textContent = err.message || String(err);
+          errorEl.hidden = false;
+        });
       });
     }
 
