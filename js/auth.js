@@ -175,6 +175,15 @@ var Auth = (function () {
       .then(function (res) { if (res.error) throw res.error; });
   }
 
+  // Quita a alguien de TU espacio compartido (lo puede hacer cualquiera
+  // de los dos lados, no solo quien se unió). Esa persona regresa a su
+  // propio espacio; no se borra ningún dato de nadie.
+  function removeHouseholdMember(memberId) {
+    var c = client();
+    return c.rpc("remove_household_member", { p_member_id: memberId })
+      .then(function (res) { if (res.error) throw new Error(friendlyError(res.error)); });
+  }
+
   // Sale del espacio compartido y regresa tu perfil a tu propio
   // espacio (tu invite_code de siempre). No borra ningún dato: lo que
   // había en el espacio compartido sigue ahí para quien se quede.
@@ -205,6 +214,7 @@ var Auth = (function () {
     acceptJoinRequest: acceptJoinRequest,
     rejectJoinRequest: rejectJoinRequest,
     dismissJoinRequest: dismissJoinRequest,
-    leaveHousehold: leaveHousehold
+    leaveHousehold: leaveHousehold,
+    removeHouseholdMember: removeHouseholdMember
   };
 })();

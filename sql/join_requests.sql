@@ -115,7 +115,7 @@ begin
     raise exception 'Esa solicitud ya no está disponible.';
   end if;
 
-  select household_code into my_code from profiles where id = auth.uid();
+  select p.household_code into my_code from profiles p where p.id = auth.uid();
 
   update profiles set household_code = my_code where id = req.requester_id;
   update join_requests set status = 'accepted', resolved_at = (extract(epoch from now()) * 1000)::bigint where id = p_request_id;
@@ -159,6 +159,40 @@ begin
 end;
 $$;
 grant execute on function leave_household() to authenticated;
+
+-- ---------------------------------------------------------
+-- Quitar a alguien de TU espacio compartido (lo puede hacer
+-- cualquiera de los dos lados, no solo quien se une). Igual que
+-- "Dejar de compartir": esa persona regresa a su propio espacio,
+-- no se borra ningún dato de nadie.
+-- ---------------------------------------------------------
+
+create or replace function remove_household_member(p_member_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  my_code text;
+  member_code text;
+  member_invite text;
+begin
+  if p_member_id = auth.uid() then
+    raise exception 'No puedes quitarte a ti mismo así — usa "Dejar de compartir".';
+  end if;
+
+  select p.household_code into my_code from profiles p where p.id = auth.uid();
+  select p.household_code, p.invite_code into member_code, member_invite from profiles p where p.id = p_member_id;
+
+  if member_code is null or member_code <> my_code then
+    raise exception 'Esa persona no está en tu espacio compartido.';
+  end if;
+
+  update profiles set household_code = member_invite where id = p_member_id;
+end;
+$$;
+grant execute on function remove_household_member(uuid) to authenticated;
 
 -- refresca el cache de esquema de PostgREST para que la API
 -- reconozca la tabla y las funciones nuevas de inmediato.

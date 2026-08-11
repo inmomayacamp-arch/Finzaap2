@@ -144,7 +144,15 @@ var AccountView = (function () {
           ? '<div class="sync-status-text ok" style="margin-top:8px;display:flex;align-items:center;gap:8px">' +
               '<div class="avatar-stack">' + others.map(function (m) { return '<span class="avatar avatar-sm" style="background:' + Utils.colorForAuthor(m.name) + '">' + Utils.initials(m.name) + '</span>'; }).join("") + '</div>' +
               '<span>Sincronizado con ' + others.map(function (m) { return Utils.escapeHtml(m.name); }).join(", ") + '</span>' +
-            '</div>'
+            '</div>' +
+            others.map(function (m) {
+              return (
+                '<div class="join-request-row">' +
+                  '<span class="jr-name">' + Utils.escapeHtml(m.name) + '</span>' +
+                  '<button class="btn btn-danger-outline btn-pill" data-remove-member="' + m.id + '" data-member-name="' + Utils.escapeHtml(m.name) + '">Quitar</button>' +
+                '</div>'
+              );
+            }).join("")
           : (isShared
               ? '<div class="sync-status-text ok" style="margin-top:4px">' + Icons.get("check", 14) + ' Conectado con otra cuenta (código ' + session.code + ')</div>'
               : '')) +
@@ -371,6 +379,21 @@ var AccountView = (function () {
         leaveHousehold(session);
       });
     }
+
+    container.querySelectorAll("[data-remove-member]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var name = btn.getAttribute("data-member-name");
+        if (!confirm("¿Quitar a " + name + " de tu cuenta compartida? Ella o él regresará a su propio espacio; no se borra ningún dato.")) return;
+        btn.disabled = true;
+        Auth.removeHouseholdMember(btn.getAttribute("data-remove-member")).then(function () {
+          App.invalidateHouseholdMembers(session.code);
+          App.refresh();
+        }).catch(function (err) {
+          alert(err.message || String(err));
+          btn.disabled = false;
+        });
+      });
+    });
 
     container.querySelector("#btn-logout").addEventListener("click", function () {
       if (confirm("¿Cerrar sesión? Tus datos siguen guardados en la nube; vuelve a entrar con tu correo cuando quieras.")) {
