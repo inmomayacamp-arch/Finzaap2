@@ -109,6 +109,9 @@ as $$
 declare
   req record;
   my_code text;
+  old_code text;
+  old_code_members int;
+  t text;
 begin
   select * into req from join_requests where id = p_request_id and target_id = auth.uid() and status = 'pending';
   if req is null then
@@ -116,6 +119,25 @@ begin
   end if;
 
   select p.household_code into my_code from profiles p where p.id = auth.uid();
+  select p.household_code into old_code from profiles p where p.id = req.requester_id;
+
+  -- Si quien se une estaba solo en su espacio anterior, sus datos se
+  -- mueven con él al espacio compartido (no se quedan huérfanos bajo
+  -- un código al que ya nadie apunta). Si esa persona ya compartía su
+  -- espacio con alguien más, no tocamos esos datos — no son solo
+  -- suyos para moverlos.
+  if old_code is not null and old_code <> my_code then
+    select count(*) into old_code_members from profiles p where p.household_code = old_code;
+    if old_code_members <= 1 then
+      for t in select unnest(array[
+        'transactions','recurring_transactions','receivables','payables',
+        'recurring_receivables','recurring_payables','savings_categories','savings_deposits'
+      ])
+      loop
+        execute format('update %I set account_code = $1 where account_code = $2', t) using my_code, old_code;
+      end loop;
+    end if;
+  end if;
 
   update profiles set household_code = my_code where id = req.requester_id;
   update join_requests set status = 'accepted', resolved_at = (extract(epoch from now()) * 1000)::bigint where id = p_request_id;
