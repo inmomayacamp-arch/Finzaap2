@@ -561,21 +561,28 @@ var ReportView = (function () {
 
     fontsReady.then(function () {
       // #print-report vive dentro de .print-clip (tamaño 0 en pantalla,
-      // a propósito para que no se vea mientras se genera el PDF).
-      // html2canvas a veces detecta ese 0 como el ancho "visible" real y
-      // recorta el contenido -- se le pasa el tamaño real medido del
-      // propio elemento (scrollWidth/Height no los afecta el recorte del
-      // ancestro) para que ignore esa pista falsa.
+      // a propósito para que no se vea mientras se genera el PDF). Ese
+      // recorte también le aplica a html2canvas cuando captura, así que
+      // el contenido salía cortado. onclone corre sobre una COPIA interna
+      // separada que usa solo para renderizar (no toca lo que ve el
+      // usuario en la página real) -- ahí le quitamos el recorte antes
+      // de que tome la captura.
       return html2pdf().set({
         margin: 10,
         filename: filename,
         html2canvas: {
           scale: 2,
           backgroundColor: "#ffffff",
-          width: printEl.scrollWidth,
-          height: printEl.scrollHeight,
-          windowWidth: printEl.scrollWidth,
-          windowHeight: printEl.scrollHeight
+          onclone: function (clonedDoc) {
+            var clone = clonedDoc.getElementById("print-report");
+            var wrap = clone && clone.parentElement;
+            if (wrap) {
+              wrap.style.position = "static";
+              wrap.style.width = "auto";
+              wrap.style.height = "auto";
+              wrap.style.overflow = "visible";
+            }
+          }
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
       }).from(printEl).save();
