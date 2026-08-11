@@ -11,6 +11,7 @@
 var Stripe = require("stripe");
 var { createClient } = require("@supabase/supabase-js");
 var { readRawBody } = require("./_lib/body");
+var { sendJson } = require("./_lib/http");
 
 module.exports = async function handler(req, res) {
   var stripe = Stripe(process.env.STRIPE_SECRET_KEY);
@@ -21,7 +22,7 @@ module.exports = async function handler(req, res) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    res.status(400).json({ error: "Firma inválida: " + err.message });
+    sendJson(res, 400, { error: "Firma inválida: " + err.message });
     return;
   }
 
@@ -76,8 +77,8 @@ module.exports = async function handler(req, res) {
       await upsertFromSubscription(event.data.object);
     }
 
-    res.status(200).json({ received: true });
+    sendJson(res, 200, { received: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendJson(res, 500, { error: err.message });
   }
 };

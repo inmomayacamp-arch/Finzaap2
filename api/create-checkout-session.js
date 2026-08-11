@@ -10,24 +10,25 @@
 var Stripe = require("stripe");
 var { createClient } = require("@supabase/supabase-js");
 var { readJsonBody } = require("./_lib/body");
+var { sendJson } = require("./_lib/http");
 
 module.exports = async function handler(req, res) {
-  if (req.method !== "POST") { res.status(405).json({ error: "Método no permitido" }); return; }
+  if (req.method !== "POST") { sendJson(res, 405, { error: "Método no permitido" }); return; }
 
   var body = await readJsonBody(req);
   var plan = body && body.plan;
   if (plan !== "monthly" && plan !== "annual") {
-    res.status(400).json({ error: "Plan inválido" });
+    sendJson(res, 400, { error: "Plan inválido" });
     return;
   }
 
   var token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  if (!token) { res.status(401).json({ error: "No autorizado" }); return; }
+  if (!token) { sendJson(res, 401, { error: "No autorizado" }); return; }
 
   var supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   var { data: userData, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userData || !userData.user) {
-    res.status(401).json({ error: "No autorizado" });
+    sendJson(res, 401, { error: "No autorizado" });
     return;
   }
 
@@ -37,7 +38,7 @@ module.exports = async function handler(req, res) {
     .eq("id", userData.user.id)
     .single();
   if (profileErr || !profile) {
-    res.status(400).json({ error: "No encontramos tu perfil" });
+    sendJson(res, 400, { error: "No encontramos tu perfil" });
     return;
   }
 
@@ -66,8 +67,8 @@ module.exports = async function handler(req, res) {
       cancel_url: origin + "/index.html?checkout=cancel"
     });
 
-    res.status(200).json({ url: session.url });
+    sendJson(res, 200, { url: session.url });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendJson(res, 500, { error: err.message });
   }
 };

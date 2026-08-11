@@ -7,17 +7,18 @@
 
 var Stripe = require("stripe");
 var { createClient } = require("@supabase/supabase-js");
+var { sendJson } = require("./_lib/http");
 
 module.exports = async function handler(req, res) {
-  if (req.method !== "POST") { res.status(405).json({ error: "Método no permitido" }); return; }
+  if (req.method !== "POST") { sendJson(res, 405, { error: "Método no permitido" }); return; }
 
   var token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  if (!token) { res.status(401).json({ error: "No autorizado" }); return; }
+  if (!token) { sendJson(res, 401, { error: "No autorizado" }); return; }
 
   var supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   var { data: userData, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userData || !userData.user) {
-    res.status(401).json({ error: "No autorizado" });
+    sendJson(res, 401, { error: "No autorizado" });
     return;
   }
 
@@ -26,7 +27,7 @@ module.exports = async function handler(req, res) {
     .select("household_code")
     .eq("id", userData.user.id)
     .single();
-  if (!profile) { res.status(400).json({ error: "No encontramos tu perfil" }); return; }
+  if (!profile) { sendJson(res, 400, { error: "No encontramos tu perfil" }); return; }
 
   var { data: sub } = await supabase
     .from("subscriptions")
@@ -34,7 +35,7 @@ module.exports = async function handler(req, res) {
     .eq("household_code", profile.household_code)
     .maybeSingle();
   if (!sub || !sub.stripe_customer_id) {
-    res.status(400).json({ error: "Todavía no tienes una suscripción para administrar." });
+    sendJson(res, 400, { error: "Todavía no tienes una suscripción para administrar." });
     return;
   }
 
@@ -44,8 +45,8 @@ module.exports = async function handler(req, res) {
       customer: sub.stripe_customer_id,
       return_url: "https://finzapp.com.mx/index.html"
     });
-    res.status(200).json({ url: portal.url });
+    sendJson(res, 200, { url: portal.url });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendJson(res, 500, { error: err.message });
   }
 };

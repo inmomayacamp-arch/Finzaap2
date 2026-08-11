@@ -15,20 +15,21 @@
 
 var { createClient } = require("@supabase/supabase-js");
 var webpush = require("web-push");
+var { sendJson } = require("./_lib/http");
 
 module.exports = async function handler(req, res) {
   // Protege el endpoint: solo Vercel Cron (con CRON_SECRET) puede
   // llamarlo, para que nadie más pueda disparar envíos masivos.
   var authHeader = req.headers["authorization"] || "";
   if (!process.env.CRON_SECRET || authHeader !== "Bearer " + process.env.CRON_SECRET) {
-    res.status(401).json({ error: "No autorizado" });
+    sendJson(res, 401, { error: "No autorizado" });
     return;
   }
 
   var supabaseUrl = process.env.SUPABASE_URL;
   var serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey || !process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    res.status(500).json({ error: "Faltan variables de entorno" });
+    sendJson(res, 500, { error: "Faltan variables de entorno" });
     return;
   }
 
@@ -43,15 +44,15 @@ module.exports = async function handler(req, res) {
   var { data: subs, error: subsErr } = await supabase
     .from("push_subscriptions")
     .select("user_id, endpoint, p256dh, auth");
-  if (subsErr) { res.status(500).json({ error: subsErr.message }); return; }
-  if (!subs || !subs.length) { res.status(200).json({ checked: 0, sent: 0 }); return; }
+  if (subsErr) { sendJson(res, 500, { error: subsErr.message }); return; }
+  if (!subs || !subs.length) { sendJson(res, 200, { checked: 0, sent: 0 }); return; }
 
   var userIds = Array.from(new Set(subs.map(function (s) { return s.user_id; })));
   var { data: profiles, error: profErr } = await supabase
     .from("profiles")
     .select("id, household_code")
     .in("id", userIds);
-  if (profErr) { res.status(500).json({ error: profErr.message }); return; }
+  if (profErr) { sendJson(res, 500, { error: profErr.message }); return; }
 
   var notifications = []; // { user_id, title, body }
 
@@ -120,5 +121,5 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  res.status(200).json({ checked: profiles.length, notifications: notifications.length, sent: sent, failed: failed, removedStale: removed });
+  sendJson(res, 200, { checked: profiles.length, notifications: notifications.length, sent: sent, failed: failed, removedStale: removed });
 };
