@@ -516,30 +516,51 @@ var ReportView = (function () {
         ? '<div class="field-group"><label class="field-label">Categoría</label><p style="font-size:14px;font-weight:600;margin:0">' + Icons.categoryEmoji(existing.category) + " " + Utils.escapeHtml(existing.category) + '</p></div>'
         : '<div class="field-group"><label class="field-label">Categoría</label>' +
             '<select id="f-budget-category" class="input">' +
-              (options.length ? options.map(function (c) { return '<option value="' + Utils.escapeHtml(c) + '">' + Utils.escapeHtml(c) + '</option>'; }).join("") : '<option value="">Ya tienes presupuesto en todas tus categorías</option>') +
+              options.map(function (c) { return '<option value="' + Utils.escapeHtml(c) + '">' + Utils.escapeHtml(c) + '</option>'; }).join("") +
+              '<option value="__custom__">+ Otra categoría…</option>' +
             '</select>' +
+            '<input type="text" id="f-budget-category-custom" class="input" placeholder="Nombre de la categoría" style="margin-top:8px" hidden>' +
           '</div>') +
       '<div class="field-group"><label class="field-label">Límite mensual (MXN)</label>' +
         '<div class="amount-field expense"><span class="curr-sign">$</span><input type="number" inputmode="decimal" id="f-budget-limit" placeholder="0" min="0" step="0.01" value="' + (isEdit ? existing.monthlyLimit : "") + '"></div>' +
       '</div>' +
+      '<p class="field-error" id="f-budget-error" hidden></p>' +
       (isEdit
         ? '<div class="detail-actions">' +
             '<button class="btn btn-danger-outline" id="btn-delete-budget">Eliminar</button>' +
             '<button class="btn btn-danger-solid" id="f-submit">Guardar cambios</button>' +
           '</div>'
-        : '<button class="btn btn-danger-solid modal-footer-btn" id="f-submit" ' + (options.length ? "" : "disabled") + '>Crear presupuesto</button>');
+        : '<button class="btn btn-danger-solid modal-footer-btn" id="f-submit">Crear presupuesto</button>');
 
     Modals.open({
       html: html,
       onMount: function (sheet) {
+        var categorySelect = sheet.querySelector("#f-budget-category");
+        var customInput = sheet.querySelector("#f-budget-category-custom");
+        var errorEl = sheet.querySelector("#f-budget-error");
+
+        if (categorySelect) {
+          categorySelect.addEventListener("change", function () {
+            var isCustom = categorySelect.value === "__custom__";
+            customInput.hidden = !isCustom;
+            if (isCustom) customInput.focus();
+          });
+        }
+
         sheet.querySelector("#f-submit").addEventListener("click", function () {
+          errorEl.hidden = true;
           var limit = parseFloat(sheet.querySelector("#f-budget-limit").value);
           if (!limit || limit <= 0) { sheet.querySelector("#f-budget-limit").focus(); return; }
           if (isEdit) {
             Storage.budgets.update(code(), existing.id, { monthlyLimit: limit, updatedAt: Date.now() });
           } else {
-            var category = sheet.querySelector("#f-budget-category").value;
-            if (!category) return;
+            var category = categorySelect.value === "__custom__" ? customInput.value.trim() : categorySelect.value;
+            if (!category) { (categorySelect.value === "__custom__" ? customInput : categorySelect).focus(); return; }
+            if (categoriesInUse.indexOf(category) > -1) {
+              errorEl.textContent = "Ya tienes un presupuesto en \"" + category + "\".";
+              errorEl.hidden = false;
+              return;
+            }
             Storage.budgets.add(code(), { id: Utils.uid(), category: category, monthlyLimit: limit, notifiedPct: 0, notifiedMonth: null, createdAt: Date.now() });
           }
           Modals.close();
