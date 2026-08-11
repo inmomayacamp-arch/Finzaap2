@@ -845,9 +845,9 @@ input{ font-family:inherit; }
   color:var(--red-500);
 }
 .segmented button.active{
-  background:var(--surface);
-  color:var(--text);
-  box-shadow:0 2px 6px rgba(20,20,43,0.08);
+  background:var(--purple-500);
+  color:#fff;
+  box-shadow:0 2px 6px rgba(108,92,231,0.30);
 }
 #direction-toggle button[data-direction="add"].active{
   background:var(--green-50);
