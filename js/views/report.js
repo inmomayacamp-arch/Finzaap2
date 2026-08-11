@@ -559,43 +559,17 @@ var ReportView = (function () {
     // desbordar las columnas de la tabla en el PDF resultante.
     var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
 
-    // #print-report vive normalmente dentro de .print-clip (tamaño 0 en
-    // pantalla, para que no se vea) -- ese recorte le confundía a
-    // html2canvas y le cortaba contenido al capturar, incluso probando a
-    // pasarle dimensiones u onclone. La forma que sí garantiza una
-    // captura fiel es quitarle el recorte DE VERDAD justo antes de
-    // capturar (ya no hay nada que engañar) y tapar el flash con un
-    // overlay de carga -- se restaura pase lo que pase, incluso si algo
-    // truena a medio camino.
-    var clipEl = printEl.parentElement;
-    var overlay = document.getElementById("pdf-loading-overlay");
-    clipEl.style.position = "static";
-    clipEl.style.width = "auto";
-    clipEl.style.height = "auto";
-    clipEl.style.overflow = "visible";
-    overlay.hidden = false;
-
-    function restoreClip() {
-      clipEl.style.position = "";
-      clipEl.style.width = "";
-      clipEl.style.height = "";
-      clipEl.style.overflow = "";
-      overlay.hidden = true;
-    }
-
     fontsReady.then(function () {
       return html2pdf().set({
-        margin: 10,
+        margin: 8,
         filename: filename,
         html2canvas: { scale: 2, backgroundColor: "#ffffff" },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
       }).from(printEl).save();
     }).then(function () {
-      restoreClip();
       btn.innerHTML = restore;
       btn.disabled = false;
     }).catch(function () {
-      restoreClip();
       btn.innerHTML = restore;
       btn.disabled = false;
       window.print();
