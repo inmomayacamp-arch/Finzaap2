@@ -117,9 +117,42 @@ module.exports = async function handler(req, res) {
   });
 
   var accountCodes = Object.keys(profilesByAccount);
+
+  // Prueba por terminar: aviso único (no todos los dias, para no
+  // machacar) cuando quedan exactamente 2 dias de los 7 de prueba, y
+  // solo si la cuenta no tiene ya una suscripcion real -- si ya paga,
+  // no le va a "acabar" nada, el aviso no le aplica.
+  var TRIAL_DAYS = 7;
+  var TRIAL_WARNING_DAYS_LEFT = 2;
+
+  var { data: accountsData } = await supabase.from("accounts").select("code, created_at").in("code", accountCodes);
+  var createdAtByAccount = {};
+  (accountsData || []).forEach(function (acc) { createdAtByAccount[acc.code] = Number(acc.created_at); });
+
+  var { data: subsData } = await supabase.from("subscriptions").select("household_code, status").in("household_code", accountCodes);
+  var hasAccessViaSubByAccount = {};
+  (subsData || []).forEach(function (s) {
+    if (s.status === "active" || s.status === "trialing" || s.status === "grandfathered") hasAccessViaSubByAccount[s.household_code] = true;
+  });
+
   for (var a = 0; a < accountCodes.length; a++) {
     var accCode = accountCodes[a];
     var members = profilesByAccount[accCode];
+
+    var createdAt = createdAtByAccount[accCode];
+    if (createdAt && !hasAccessViaSubByAccount[accCode]) {
+      var daysSinceCreated = Math.floor((today.getTime() - createdAt) / 86400000);
+      var trialDaysLeft = TRIAL_DAYS - daysSinceCreated;
+      if (trialDaysLeft === TRIAL_WARNING_DAYS_LEFT) {
+        members.forEach(function (m) {
+          notifications.push({
+            user_id: m.id,
+            title: "Tu prueba está por terminar",
+            body: "Te quedan " + TRIAL_WARNING_DAYS_LEFT + " días de prueba gratis en FinzApp. Activa un plan para no perder acceso."
+          });
+        });
+      }
+    }
 
     var { data: accBudgets } = await supabase
       .from("budgets")
