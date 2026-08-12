@@ -628,7 +628,7 @@ var AccountView = (function () {
       Storage.transactions, Storage.recurringTransactions,
       Storage.receivables, Storage.payables,
       Storage.recurringReceivables, Storage.recurringPayables,
-      Storage.savingsCategories, Storage.savingsDeposits
+      Storage.savingsCategories, Storage.savingsDeposits, Storage.budgets
     ].forEach(function (api) {
       api.list(acc).forEach(function (item) { api.remove(acc, item.id); });
     });
