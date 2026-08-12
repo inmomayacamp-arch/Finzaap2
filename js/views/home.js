@@ -6,6 +6,61 @@ var HomeView = (function () {
 
   function code() { return App.session().code; }
 
+  // Checklist de bienvenida: solo para cuentas nuevas (primeros 14
+  // días), desaparece sola en cuanto los 4 pasos quedan hechos, o si
+  // la persona la cierra manualmente. La fecha de creación de la
+  // cuenta vive en Supabase (accounts.created_at), así que hay que
+  // pedirla una vez y cachearla -- igual que billingState/
+  // pushSubscribed en views/account.js.
+  var WELCOME_CHECKLIST_DAYS = 14;
+  var accountCreatedAt = null; // null = aún no se sabe
+  var accountCreatedAtLoading = false;
+
+  function welcomeDismissKey(acc) { return "finanza:welcomeDismissed:" + acc; }
+
+  function ensureAccountCreatedAtLoaded(session) {
+    if (accountCreatedAt !== null || accountCreatedAtLoading || !Storage.sync.isConfigured()) return;
+    accountCreatedAtLoading = true;
+    Storage.sync.client().from("accounts").select("created_at").eq("code", session.code).maybeSingle()
+      .then(function (res) {
+        accountCreatedAt = (res.data && Number(res.data.created_at)) || Date.now();
+        accountCreatedAtLoading = false;
+        App.refresh();
+      })
+      .catch(function () { accountCreatedAtLoading = false; });
+  }
+
+  function welcomeChecklistHTML(session) {
+    if (accountCreatedAt === null) return "";
+    if (Date.now() - accountCreatedAt > WELCOME_CHECKLIST_DAYS * 86400000) return "";
+    if (localStorage.getItem(welcomeDismissKey(code())) === "1") return "";
+
+    var items = [
+      { id: "tx", label: "Registra tu primer movimiento", done: Storage.transactions.list(code()).length > 0 },
+      { id: "install", label: "Instala la app en tu celular", done: typeof InstallPrompt !== "undefined" && InstallPrompt.isStandalone() },
+      { id: "push", label: "Activa las notificaciones", done: typeof Push !== "undefined" && Push.permission() === "granted" },
+      { id: "goal", label: "Crea tu primera meta de ahorro", done: Storage.savingsCategories.list(code()).length > 0 }
+    ];
+    if (items.every(function (i) { return i.done; })) return "";
+
+    return (
+      '<div class="card welcome-checklist">' +
+        '<div class="tx-list-head">' +
+          '<div class="section-title">Primeros pasos en FinzApp</div>' +
+          '<button type="button" id="btn-dismiss-welcome" class="icon-btn" title="Cerrar">' + Icons.get("close", 14) + '</button>' +
+        '</div>' +
+        items.map(function (i) {
+          return (
+            '<div class="welcome-item' + (i.done ? " done" : "") + '" data-welcome-item="' + i.id + '">' +
+              '<span class="welcome-check">' + (i.done ? Icons.get("check", 13) : "") + '</span>' +
+              '<span class="welcome-label">' + i.label + '</span>' +
+            '</div>'
+          );
+        }).join("") +
+      '</div>'
+    );
+  }
+
   // categorías más comunes por tipo, para el selector rápido del
   // formulario -- el campo sigue siendo texto libre en storage, esto
   // solo precarga las opciones típicas.
@@ -65,6 +120,7 @@ var HomeView = (function () {
     var session = App.session();
     App.ensureHouseholdMembersLoaded(session);
     var others = App.householdMembers(session);
+    ensureAccountCreatedAtLoaded(session);
     var thisMonth = computeMonthSummary(txs, now.getFullYear(), now.getMonth());
     var prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     var prevMonth = computeMonthSummary(txs, prevDate.getFullYear(), prevDate.getMonth());
@@ -85,6 +141,8 @@ var HomeView = (function () {
           '<button class="avatar" id="home-avatar-btn" style="background:' + session.color + '" title="Ir a Cuenta">' + Utils.initials(session.name) + '</button>' +
         '</div>' +
       '</div>' +
+
+      welcomeChecklistHTML(session) +
 
       '<div class="home-grid">' +
         '<div class="home-col-left">' +
@@ -249,6 +307,26 @@ var HomeView = (function () {
       row.addEventListener("click", function () {
         var tx = Storage.transactions.list(code()).find(function (t) { return t.id === row.getAttribute("data-tx-id"); });
         if (tx) openTransactionDetailModal(tx);
+      });
+    });
+
+    var dismissWelcomeBtn = container.querySelector("#btn-dismiss-welcome");
+    if (dismissWelcomeBtn) {
+      dismissWelcomeBtn.addEventListener("click", function () {
+        try { localStorage.setItem(welcomeDismissKey(code()), "1"); } catch (e) {}
+        App.refresh();
+      });
+    }
+    container.querySelectorAll("[data-welcome-item]").forEach(function (item) {
+      item.addEventListener("click", function () {
+        var id = item.getAttribute("data-welcome-item");
+        if (id === "tx") { openTransactionModal("egreso"); return; }
+        if (id === "install") { App.navigate("cuenta"); return; }
+        if (id === "goal") { App.navigate("ahorro"); return; }
+        if (id === "push") {
+          if (typeof Push === "undefined") return;
+          Push.subscribe(App.session().userId).then(function () { App.refresh(); }).catch(function () {});
+        }
       });
     });
   }

@@ -974,6 +974,28 @@ input{ font-family:inherit; }
 .budget-fill-warning{ background:linear-gradient(90deg,var(--amber-400),var(--amber-500)); }
 .budget-fill-over{ background:linear-gradient(90deg,var(--red-400),var(--red-500)); }
 
+.welcome-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 0;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  font-size:13.5px;
+  color:var(--text);
+}
+.welcome-item:last-child{ border-bottom:none; }
+.welcome-check{
+  width:20px; height:20px;
+  border-radius:50%;
+  border:1.5px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  color:#fff;
+}
+.welcome-item.done .welcome-check{ background:var(--green-500); border-color:var(--green-500); }
+.welcome-item.done .welcome-label{ color:var(--text-muted); text-decoration:line-through; }
+
 .chart-wrap{
   display:flex;
   align-items:flex-end;
