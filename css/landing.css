@@ -463,6 +463,39 @@ img{ max-width:100%; display:block; }
 .l-footer-note a{ font-weight:600; color:var(--purple-500); }
 .l-footer-copy{ font-size:12px; color:var(--text-muted); }
 
+/* ---------- botón flotante ---------- */
+
+.l-fab{
+  position:fixed;
+  right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom));
+  z-index:50;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:14px 20px;
+  border-radius:999px;
+  background:linear-gradient(135deg,var(--purple-400),var(--purple-500));
+  color:#fff;
+  font-weight:700;
+  font-size:14px;
+  white-space:nowrap;
+  box-shadow:0 10px 26px rgba(108,92,231,0.45);
+  transition:transform .15s ease, filter .15s ease;
+  animation:l-fab-pulse 2.6s ease-in-out infinite;
+}
+.l-fab:hover{ filter:brightness(1.06); transform:translateY(-2px); }
+.l-fab:active{ transform:scale(0.96); }
+.l-fab-icon{ display:flex; flex-shrink:0; }
+
+@keyframes l-fab-pulse{
+  0%,100%{ box-shadow:0 10px 26px rgba(108,92,231,0.45), 0 0 0 0 rgba(108,92,231,0.35); }
+  50%{ box-shadow:0 10px 26px rgba(108,92,231,0.45), 0 0 0 10px rgba(108,92,231,0); }
+}
+@media (prefers-reduced-motion: reduce){
+  .l-fab{ animation:none; }
+}
+
 /* =========================================================
    TABLET / ESCRITORIO
    ========================================================= */
